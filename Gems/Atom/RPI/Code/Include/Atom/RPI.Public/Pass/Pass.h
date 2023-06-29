@@ -1,10 +1,10 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project.
- * For complete copyright and license terms please see the LICENSE at the root of this distribution.
- *
- * SPDX-License-Identifier: Apache-2.0 OR MIT
- *
- */
+* Copyright (c) Contributors to the Open 3D Engine Project.
+* For complete copyright and license terms please see the LICENSE at the root of this distribution.
+*
+* SPDX-License-Identifier: Apache-2.0 OR MIT
+*
+*/
 #pragma once
 
 #include <Atom/RPI.Public/Base.h>
@@ -70,7 +70,7 @@ namespace AZ
         const uint32_t PassInputBindingCountMax = PassAttachmentBindingCountMax;
         const uint32_t PassInputOutputBindingCountMax = PassInputBindingCountMax;
         const uint32_t PassOutputBindingCountMax = PassInputBindingCountMax;
-                
+
         enum class PassAttachmentReadbackOption : uint8_t
         {
             Input = 0,
@@ -198,9 +198,11 @@ namespace AZ
             //! The buffer will be added as a pass attachment then attach to the pass slot
             //! Note: the pass attachment and binding will be removed after the general Build call.
             //!       you can add this call in pass' BuildInternal so it will be added whenever attachments get rebuilt
-            void AttachBufferToSlot(AZStd::string_view slot, Data::Instance<Buffer> buffer);
-            void AttachBufferToSlot(const Name& slot, Data::Instance<Buffer> buffer);
-            void AttachImageToSlot(const Name& slot, Data::Instance<AttachmentImage> image);
+            //! @param allowReplace EXPERIMENTAL. Set to true if you know there are no complex dependencies around this attachment, otherwise
+            //!     bad things will happen.
+            void AttachBufferToSlot(AZStd::string_view slot, Data::Instance<Buffer> buffer, bool allowReplace = false);
+            void AttachBufferToSlot(const Name& slot, Data::Instance<Buffer> buffer, bool allowReplace = false);
+            void AttachImageToSlot(const Name& slot, Data::Instance<AttachmentImage> image, bool allowReplace = false);
 
             // --- Virtual functions which may need to be override by derived classes ---
 
@@ -393,7 +395,7 @@ namespace AZ
             // List of input, output and input/output attachment bindings
             // Fixed size for performance and so we can hold pointers to the bindings for connections
             AZStd::fixed_vector<PassAttachmentBinding, PassAttachmentBindingCountMax> m_attachmentBindings;
-            
+
             // List of attachments owned by this pass.
             // It includes both transient attachments and imported attachments
             AZStd::vector<Ptr<PassAttachment>> m_ownedAttachments;
@@ -482,7 +484,7 @@ namespace AZ
             // Sort type to be used by the default sort implementation. Passes can also provide
             // fully custom sort implementations by overriding the SortDrawList() function.
             RHI::DrawListSortType m_drawListSortType = RHI::DrawListSortType::KeyThenDepth;
-            
+
             // For read back attachment
             AZStd::shared_ptr<AttachmentReadback> m_attachmentReadback;
             PassAttachmentReadbackOption m_readbackOption;
@@ -665,9 +667,9 @@ namespace AZ
 
 #if AZ_RPI_ENABLE_PASS_DEBUGGING
 
-// This macro will break in pass code (functions that belong to Pass or it's child classes)
-// if the name of the pass being executed is the same as the one specified for targeted debugging
-// in the pass system (see functions with "TargetedPassDebugging" above)
+    // This macro will break in pass code (functions that belong to Pass or it's child classes)
+    // if the name of the pass being executed is the same as the one specified for targeted debugging
+    // in the pass system (see functions with "TargetedPassDebugging" above)
 #define AZ_RPI_BREAK_ON_TARGET_PASS  AZ::RPI::PassSystemInterface::Get()->DebugBreakOnPass(this);
 
 #else

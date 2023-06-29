@@ -1,10 +1,10 @@
 /*
- * Copyright (c) Contributors to the Open 3D Engine Project.
- * For complete copyright and license terms please see the LICENSE at the root of this distribution.
- *
- * SPDX-License-Identifier: Apache-2.0 OR MIT
- *
- */
+* Copyright (c) Contributors to the Open 3D Engine Project.
+* For complete copyright and license terms please see the LICENSE at the root of this distribution.
+*
+* SPDX-License-Identifier: Apache-2.0 OR MIT
+*
+*/
 
 #include <AzCore/RTTI/RTTI.h>
 #include <AzCore/std/string/conversions.h>
@@ -359,12 +359,12 @@ namespace AZ
             }
         }
 
-        void Pass::AttachBufferToSlot(AZStd::string_view slot, Data::Instance<Buffer> buffer)
+        void Pass::AttachBufferToSlot(AZStd::string_view slot, Data::Instance<Buffer> buffer, bool allowReplace)
         {
-            AttachBufferToSlot(Name(slot), buffer);
+            AttachBufferToSlot(Name(slot), buffer, allowReplace);
         }
 
-        void Pass::AttachBufferToSlot(const Name& slot, Data::Instance<Buffer> buffer)
+        void Pass::AttachBufferToSlot(const Name& slot, Data::Instance<Buffer> buffer, bool allowReplace)
         {
             if (!buffer)
             {
@@ -382,7 +382,7 @@ namespace AZ
             // We can't handle the case that there is already an attachment attached yet.
             // We could consider to add it later if there are needs. It may require remove from the owned attachment list and
             // handle the connected bindings
-            if (localBinding->GetAttachment())
+            if (localBinding->GetAttachment() && !allowReplace)
             {
                 AZ_RPI_PASS_ERROR(false, "Pass::AttachBufferToSlot - Slot [%s] already has attachment [%s].",
                     slot.GetCStr(), localBinding->GetAttachment()->m_name.GetCStr());
@@ -399,8 +399,8 @@ namespace AZ
 
             localBinding->SetOriginalAttachment(attachment);
         }
-        
-        void Pass::AttachImageToSlot(const Name& slot, Data::Instance<AttachmentImage> image)
+
+        void Pass::AttachImageToSlot(const Name& slot, Data::Instance<AttachmentImage> image, bool allowReplace)
         {
             PassAttachmentBinding* localBinding = FindAttachmentBinding(slot);
             if (!localBinding)
@@ -413,7 +413,7 @@ namespace AZ
             // We can't handle the case that there is already an attachment attached yet.
             // We could consider to add it later if there are needs. It may require remove from the owned attachment list and
             // handle the connected bindings
-            if (localBinding->GetAttachment())
+            if (localBinding->GetAttachment() && !allowReplace)
             {
                 AZ_RPI_PASS_ERROR(false, "Pass::AttachImageToSlot - Slot [%s] already has attachment [%s].",
                     slot.GetCStr(), localBinding->GetAttachment()->m_name.GetCStr());
@@ -1059,7 +1059,7 @@ namespace AZ
             {
                 PassAttachmentBinding* binding = FindAttachmentBinding(connection.m_localBinding);
                 AZ_RPI_PASS_ERROR(binding != nullptr, "Pass::RegisterPipelineGlobalConnections() - Could not find local binding [%s]",
-                                  connection.m_localBinding.GetCStr());
+                    connection.m_localBinding.GetCStr());
 
                 if (binding)
                 {
@@ -1238,7 +1238,7 @@ namespace AZ
             m_queueState = PassQueueState::NoQueue;
 
             InitializeInternal();
-            
+
             // Need to recreate the dest attachment because the source attachment might be changed
             if (!m_attachmentCopy.expired())
             {
@@ -1338,7 +1338,7 @@ namespace AZ
             // FrameBeginInternal needs to be the last function be called in FrameBegin because its implementation expects 
             // all the attachments are imported to database (for example, ImageAttachmentPreview)
             FrameBeginInternal(params);
-            
+
             // readback attachment with output state
             UpdateReadbackAttachment(params, false);
 
@@ -1358,7 +1358,7 @@ namespace AZ
         }
 
         // --- RenderPipeline, PipelineViewTag and DrawListTag ---
-                
+
         RHI::DrawListTag Pass::GetDrawListTag() const
         {
             static RHI::DrawListTag invalidTag;
@@ -1393,7 +1393,7 @@ namespace AZ
                 }
             }
         }
-        
+
         void Pass::ManualPipelineBuildAndInitialize()
         {
             Build();
