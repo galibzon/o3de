@@ -176,7 +176,6 @@ namespace AZ
             void DeactivateInternal() override;
             void CompileInternal(RHI::Device& device) override;
             void AddQueryPoolUse(RHI::Ptr<RHI::QueryPool> queryPool, const RHI::Interval& interval, RHI::ScopeAttachmentAccess access) override;
-            void SetSubpassDependencies(AZStd::shared_ptr<RHI::SubpassDependencies> subpassDependencies) override;
             //////////////////////////////////////////////////////////////////////////
 
             //////////////////////////////////////////////////////////////////////////
