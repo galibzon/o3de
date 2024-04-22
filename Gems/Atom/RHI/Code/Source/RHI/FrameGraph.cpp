@@ -352,7 +352,7 @@ namespace AZ::RHI
     void FrameGraph::SetHardwareQueueClass(HardwareQueueClass hardwareQueueClass)
     {
         m_currentScope->m_hardwareQueueClass = hardwareQueueClass;
-    }
+    }            
 
     void FrameGraph::UseAttachmentInternal(
         ImageFrameAttachment& frameAttachment,
@@ -388,7 +388,6 @@ namespace AZ::RHI
         ImageScopeAttachment* scopeAttachment =
             m_attachmentDatabase.EmplaceScopeAttachment<ImageScopeAttachment>(
             *m_currentScope, frameAttachment, usage, access, stage, descriptor);
-
 
         m_currentScope->m_attachments.push_back(scopeAttachment);
         m_currentScope->m_imageAttachments.push_back(scopeAttachment);

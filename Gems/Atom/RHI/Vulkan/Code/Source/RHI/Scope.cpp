@@ -704,6 +704,5 @@ namespace AZ
         {
             return m_resolveMode;            
         }
-
     }
 }
