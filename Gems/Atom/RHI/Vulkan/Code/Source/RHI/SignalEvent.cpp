@@ -11,30 +11,23 @@ namespace AZ
 {
     namespace Vulkan
     {
-        void SignalEvent::Signal(int bit)
+        void SignalEvent::SetValue(bool ready)
         {
             AZStd::unique_lock<AZStd::mutex> lock(m_eventMutex);
-            if (m_readyBits.test(bit))
-            {
-                return;
-            }
-            m_readyBits.set(bit);
+            m_ready = ready;
+        }
+
+        void SignalEvent::Signal()
+        {
+            AZStd::unique_lock<AZStd::mutex> lock(m_eventMutex);
+            m_ready = true;
             m_eventSignal.notify_all();
         }
 
-        void SignalEvent::Wait(SignalEvent::BitSet dependentBits) const
+        void SignalEvent::Wait() const
         {
-            if (!dependentBits.any())
-            {
-                return;
-            }
             AZStd::unique_lock<AZStd::mutex> lock(m_eventMutex);
-            m_eventSignal.wait(
-                lock,
-                [&]()
-                {
-                    return (m_readyBits & dependentBits) == dependentBits;
-                });
+            m_eventSignal.wait(lock, [&]() { return m_ready; });
         }
     }
 }

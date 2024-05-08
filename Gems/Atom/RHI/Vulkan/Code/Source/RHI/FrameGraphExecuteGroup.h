@@ -7,10 +7,11 @@
  */
 #pragma once
 
-#include <Atom/RHI/FrameGraphExecuteGroup.h>
 #include <RHI/CommandList.h>
 #include <RHI/CommandQueue.h>
 #include <RHI/Scope.h>
+#include <RHI/CommandQueue.h>
+#include <Atom/RHI/FrameGraphExecuteGroup.h>
 
 namespace AZ
 {

@@ -87,7 +87,6 @@ namespace AZ
             RHI::BufferSubresourceRange GetSubresourceRange(const RHI::BufferScopeAttachment& scopeAttachment) const;
 
             void CompileAsyncQueueSemaphores(const RHI::FrameGraph& frameGraph);
-            void CompileSemaphoreSynchronization(const RHI::FrameGraph& frameGraph);
         };
 
         template<class ResourceScopeAttachment, class ResourceType>

@@ -14,48 +14,43 @@ namespace AZ
 {
     namespace Vulkan
     {
+        RHI::Ptr<Semaphore> Semaphore::Create()
+        {
+            return aznew Semaphore();
+        }
+
         RHI::ResultCode Semaphore::Init(Device& device)
         {
             Base::Init(device);
-            return InitInternal(device);
-        }
 
-        void Semaphore::SetSignalEvent(const AZStd::shared_ptr<AZ::Vulkan::SignalEvent>& signalEvent)
-        {
-            m_signalEvent = signalEvent;
-        }
+            VkSemaphoreCreateInfo createInfo{};
+            createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            createInfo.pNext = 0;
+            createInfo.flags = 0;
 
-        void Semaphore::SetSignalEventBitToSignal(int bitToSignal)
-        {
-            m_bitToSignal = bitToSignal;
-        }
+            const VkResult result =
+                device.GetContext().CreateSemaphore(device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &m_nativeSemaphore);
+            AssertSuccess(result);
 
-        void Semaphore::SetSignalEventDependencies(SignalEvent::BitSet dependencies)
-        {
-            m_waitDependencies = dependencies;
+            RETURN_RESULT_IF_UNSUCCESSFUL(ConvertResult(result));
+
+            SetName(GetName());
+            return RHI::ResultCode::Success;
         }
 
         void Semaphore::SignalEvent()
         {
-            if (m_signalEvent)
-            {
-                AZ_Assert(m_bitToSignal >= 0, "Fence: SignalEvent was not set");
-                m_signalEvent->Signal(m_bitToSignal);
-            }
+            m_signalEvent.Signal();
         }
 
         void Semaphore::WaitEvent() const
         {
-            if (m_signalEvent)
-            {
-                m_signalEvent->Wait(m_waitDependencies);
-            }
+            m_signalEvent.Wait();
         }
 
-        void Semaphore::Reset()
+        void Semaphore::ResetSignalEvent()
         {
-            m_signalEvent = {};
-            ResetInternal();
+            m_signalEvent.SetValue(false);
         }
 
         void Semaphore::SetRecycleValue(bool canRecycle)
@@ -90,7 +85,7 @@ namespace AZ
                 m_nativeSemaphore = VK_NULL_HANDLE;
             }
             // Signal any pending threads.
-            SignalEvent();
+            m_signalEvent.Signal();
             Base::Shutdown();
         }
     }
