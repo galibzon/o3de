@@ -26,14 +26,14 @@ class SurfaceData_Skin
 
     // ------- BasePbrSurfaceData -------
     
-    float3 position;            //!< Position in world-space
+    float3 position;           //!< Position in world-space
     real3 normal;              //!< Normal in world-space
     real3 vertexNormal;        //!< Vertex normal in world-space
     real3 albedo;              //!< Albedo color of the non-metallic material, will be multiplied against the diffuse lighting value
     real specularF0;           //!< Fresnel f0 spectral value of the surface (only one float vs float3 since skin is non-metallic)
     real roughnessLinear;      //!< Perceptually linear roughness value authored by artists. Must be remapped to roughnessA before use
     real roughnessA;           //!< Actual roughness value ( a.k.a. "alpha roughness") to be used in microfacet calculations
-    real roughnessA2;          //!< Alpha roughness ^ 2 (i.e. roughnessA * roughnessA), used in GGX, cached here for perfromance
+    float roughnessA2;         //!< Alpha roughness ^ 2 (i.e. roughnessA * roughnessA), used in GGX, cached here for perfromance. Float precision is needed as values can get very close to 0
 
     real3 baseColor;
     real metallic;
@@ -45,7 +45,7 @@ class SurfaceData_Skin
 
     real dualSpecFactor;
     real dualSpecRoughness;
-    real dualSpecRoughnessA2;
+    float dualSpecRoughnessA2;
     real dualSpecF0;
 
     //! Subsurface scattering parameters
@@ -61,7 +61,7 @@ class SurfaceData_Skin
     //! Sets albedo and specularF0 (no metallic for skin)
     void SetAlbedoAndSpecularF0(real3 newBaseColor, real specularF0Factor);
 
-    real3 GetDiffuseNormal() { return normal; }       // Returns the normal used for diffuse  lighting calculations
+    real3 GetDiffuseNormal() { return vertexNormal; }       // Returns the normal used for diffuse  lighting calculations
     real3 GetSpecularNormal() { return normal; }            // Returns the normal used for specular lighting calculations
     real3 GetDefaultNormal() { return normal; }             // Returns the normal used for calculations that are common to both diffuse and specular calculations
                                                             // If you're doing something unusual with one of the normals, you probably want to return the other one here
