@@ -199,7 +199,12 @@ namespace AZ
             RHI::Ptr<Fence> uploadFence = Fence::Create();
             uploadFence->Init(device, RHI::FenceState::Reset);
 
+<<<<<<< HEAD
             uploadFence->SetSignalEvent(AZStd::make_shared<SignalEvent>());
+=======
+            auto signalEvent = AZStd::make_shared<SignalEvent>();
+            uploadFence->SetSignalEvent(signalEvent);
+>>>>>>> 76fb7354d7 (Add fence synchronization back to async upload queue fences)
             uploadFence->SetSignalEventBitToSignal(0);
             uploadFence->SetSignalEventDependencies(1);
 
@@ -484,7 +489,12 @@ namespace AZ
                 AZ_Assert(framePacket.m_stagingBuffer, "Failed to acquire staging buffer");
                 framePacket.m_fence = Fence::Create();
                 result = framePacket.m_fence->Init(device, RHI::FenceState::Signaled);
+<<<<<<< HEAD
                 framePacket.m_fence->SetSignalEvent(AZStd::make_shared<SignalEvent>());
+=======
+                auto signalEvent = AZStd::make_shared<SignalEvent>();
+                framePacket.m_fence->SetSignalEvent(signalEvent);
+>>>>>>> 76fb7354d7 (Add fence synchronization back to async upload queue fences)
                 framePacket.m_fence->SetSignalEventBitToSignal(0);
                 framePacket.m_fence->SetSignalEventDependencies(1);
                 RETURN_RESULT_IF_UNSUCCESSFUL(result);
