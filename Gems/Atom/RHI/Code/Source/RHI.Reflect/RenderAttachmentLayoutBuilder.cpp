@@ -275,6 +275,12 @@ namespace AZ::RHI
 
         if (findIter == m_renderTargetAttachments.end())
         {
+            // Check the depthStencilAttachment.
+            if (m_depthStencilAttachment.m_name == sourceName)
+            {
+                m_depthStencilAttachment.m_resolveName = attachmentName;
+                return this;
+            }
             AZ_Assert(false, "Failed to find render target %d to resolve", sourceName.GetCStr());
             return this;
         }

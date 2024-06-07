@@ -74,12 +74,12 @@ namespace AZ
             return m_nativeCommandBuffer;
         }
 
-        void CommandList::SetViewports(const RHI::Viewport* rhiViewports, uint32_t count) 
+        void CommandList::SetViewports(const RHI::Viewport* rhiViewports, uint32_t count)
         {
             m_state.m_viewportState.Set(AZStd::span<const RHI::Viewport>(rhiViewports, count));
         }
 
-        void CommandList::SetScissors(const RHI::Scissor* rhiScissors, uint32_t count) 
+        void CommandList::SetScissors(const RHI::Scissor* rhiScissors, uint32_t count)
         {
             m_state.m_scissorState.Set(AZStd::span<const RHI::Scissor>(rhiScissors, count));
         }
@@ -89,7 +89,7 @@ namespace AZ
             SetShaderResourceGroup(shaderResourceGroup, RHI::PipelineStateType::Draw);
         }
 
-        void CommandList::SetShaderResourceGroupForDispatch(const RHI::ShaderResourceGroup& shaderResourceGroup) 
+        void CommandList::SetShaderResourceGroupForDispatch(const RHI::ShaderResourceGroup& shaderResourceGroup)
         {
             SetShaderResourceGroup(shaderResourceGroup, RHI::PipelineStateType::Dispatch);
         }
@@ -129,10 +129,10 @@ namespace AZ
                 const RHI::Format format = destinationImage->GetDescriptor().m_format;
                 RHI::Size formatDimensionAlignment = GetFormatDimensionAlignment(format);
 
-                // VkBufferImageCopy::bufferRowLength is specified in texels not in bytes. 
-                // Because of this we need to convert m_sourceBytesPerRow from bytes to pixels to account 
-                // for any padding at the end of row. 
-                // This only works if the padding is a multiple of the size of a texel. 
+                // VkBufferImageCopy::bufferRowLength is specified in texels not in bytes.
+                // Because of this we need to convert m_sourceBytesPerRow from bytes to pixels to account
+                // for any padding at the end of row.
+                // This only works if the padding is a multiple of the size of a texel.
                 // This appears to be an imposition from Vulkan (maybe this help the driver copy the data more efficiently).
                 AZ_Assert(descriptor.m_sourceBytesPerRow % GetFormatSize(format) == 0, "Source byte-size per row has to be multiplication of the byte-size of a pixel.");
 
@@ -203,10 +203,10 @@ namespace AZ
                 const RHI::Format format = descriptor.m_destinationFormat;
                 RHI::Size formatDimensionAlignment = GetFormatDimensionAlignment(format);
 
-                // VkBufferImageCopy::bufferRowLength is specified in texels not in bytes. 
-                // Because of this we need to convert m_sourceBytesPerRow from bytes to pixels to account 
-                // for any padding at the end of row. 
-                // This only works if the padding is a multiple of the size of a texel. 
+                // VkBufferImageCopy::bufferRowLength is specified in texels not in bytes.
+                // Because of this we need to convert m_sourceBytesPerRow from bytes to pixels to account
+                // for any padding at the end of row.
+                // This only works if the padding is a multiple of the size of a texel.
                 // This appears to be an imposition from Vulkan (maybe this help the driver copy the data more efficiently).
                 AZ_Assert(descriptor.m_destinationBytesPerRow % GetFormatSize(format) == 0, "Destination byte-size per row has to be mutliplication of the byte-size of a pixel.");
 
@@ -230,7 +230,7 @@ namespace AZ
                 // a Vulkan validation error if the Source Attachment image is later used as an SRV
                 // because this CmdCopyImageToBuffer command will change and leave the layout as VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL.
                 // The solution would be to add another MemoryBarrier to change the layout back to its original
-                // state. 
+                // state.
                 // [ UNASSIGNED-CoreValidation-DrawState-InvalidImageLayout ]
                 //     (subresource: aspectMask 0x1 array layer 0, mip level 0) to be in layout VK_IMAGE_LAYOUT_GENERAL
                 //     --instead, current layout is VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL.
@@ -427,8 +427,8 @@ namespace AZ
             default:
                 AZ_Assert(false, "Invalid dispatch type");
                 break;
-            }            
-        }       
+            }
+        }
 
         void CommandList::Submit([[maybe_unused]] const RHI::DispatchRaysItem& dispatchRaysItem, uint32_t submitIndex)
         {
@@ -677,7 +677,10 @@ namespace AZ
 
             m_state.m_framebuffer = nullptr;
             m_state.m_subpassIndex = 0;
-            AssertSuccess(static_cast<Device&>(GetDevice()).GetContext().EndCommandBuffer(m_nativeCommandBuffer));
+            Device& dev = static_cast<Device&>(GetDevice());
+            const GladVulkanContext& gladCtx = dev.GetContext();
+            auto result = gladCtx.EndCommandBuffer(m_nativeCommandBuffer);
+            AssertSuccess(result);
             m_isUpdating = false;
         }
 
@@ -760,7 +763,7 @@ namespace AZ
         {
             return !!m_state.m_framebuffer;
         }
-        
+
         RHI::ResultCode CommandList::BuildNativeCommandBuffer()
         {
             VkCommandBufferAllocateInfo allocInfo;
@@ -1034,7 +1037,7 @@ namespace AZ
                 {
                     // Get the MergedShaderResourceGroup
                     MergedShaderResourceGroupPool* mergedSRGPool = pipelineLayout.GetMergedShaderResourceGroupPool(index);
-                    AZ_Assert(mergedSRGPool, "Null MergedShaderResourceGroupPool");                    
+                    AZ_Assert(mergedSRGPool, "Null MergedShaderResourceGroupPool");
 
                     RHI::Ptr<MergedShaderResourceGroup> mergedSRG = mergedSRGPool->FindOrCreate(shaderResourceGroupList);
                     AZ_Assert(mergedSRG, "Null MergedShaderResourceGroup");
@@ -1118,7 +1121,7 @@ namespace AZ
 
             return nullptr;
         }
-        
+
         void CommandList::ValidateShaderResourceGroups([[maybe_unused]] RHI::PipelineStateType type) const
         {
 #if defined (AZ_RHI_ENABLE_VALIDATION)

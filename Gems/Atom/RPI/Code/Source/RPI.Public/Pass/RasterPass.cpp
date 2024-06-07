@@ -6,6 +6,8 @@
  *
  */
 
+#include <Atom/RHI.Reflect/RenderAttachmentLayoutBuilder.h>
+
 #include <Atom/RHI/CommandList.h>
 #include <Atom/RHI/DrawListTagRegistry.h>
 #include <Atom/RHI/RHISystemInterface.h>
@@ -101,7 +103,7 @@ namespace AZ
 
         void RasterPass::SetDrawListTag(Name drawListName)
         {
-            // Use AcquireTag to register a draw list tag if it doesn't exist. 
+            // Use AcquireTag to register a draw list tag if it doesn't exist.
             RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
             m_drawListTag = rhiSystem->GetDrawListTagRegistry()->AcquireTag(drawListName);
             m_flags.m_hasDrawListTag = true;
@@ -120,6 +122,64 @@ namespace AZ
         uint32_t RasterPass::GetDrawItemCount()
         {
             return m_drawItemCount;
+        }
+
+        // -- RenderPass behaviour overrides ---
+        RHI::RenderAttachmentConfiguration RasterPass::GetRenderAttachmentConfiguration() const
+        {
+            RHI::RenderAttachmentLayoutBuilder builder;
+            auto* layoutBuilder = builder.AddSubpass();
+
+            for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
+            {
+                const PassAttachmentBinding& binding = m_attachmentBindings[slotIndex];
+
+                if (!binding.GetAttachment())
+                {
+                    continue;
+                }
+
+                // Handle the depth-stencil attachment. There should be only one.
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::DepthStencil)
+                {
+                    layoutBuilder->DepthStencilAttachment(
+                        binding.GetAttachment()->m_descriptor.m_image.m_format, binding.GetAttachment()->GetAttachmentId());
+                    continue;
+                }
+
+                // Handle shading rate attachment. There should be only one.
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::ShadingRate)
+                {
+                    layoutBuilder->ShadingRateAttachment(binding.GetAttachment()->m_descriptor.m_image.m_format);
+                    continue;
+                }
+
+                // Skip bindings that aren't outputs or inputOutputs
+                if (binding.m_slotType != PassSlotType::Output && binding.m_slotType != PassSlotType::InputOutput)
+                {
+                    continue;
+                }
+
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::RenderTarget)
+                {
+                    RHI::Format format = binding.GetAttachment()->m_descriptor.m_image.m_format;
+                    layoutBuilder->RenderTargetAttachment(format, binding.GetAttachment()->GetAttachmentId());
+                }
+
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::Resolve)
+                {
+                    AZ_Assert(slotIndex > 0, "A Resolve attachment must follow a RenderTarget or DepthStencil attachment.")
+                    auto& prevBinding = m_attachmentBindings[slotIndex - 1];
+                    layoutBuilder->ResolveAttachment(
+                        prevBinding.GetAttachment()->GetAttachmentId(), binding.GetAttachment()->GetAttachmentId());
+                }
+            }
+
+            RHI::RenderAttachmentLayout layout;
+            [[maybe_unused]] RHI::ResultCode result = builder.End(layout);
+            AZ_Assert(
+                result == RHI::ResultCode::Success, "RenderPass [%s] failed to create render attachment layout", GetPathName().GetCStr());
+            return RHI::RenderAttachmentConfiguration{ layout, 0 };
         }
 
         // --- Pass behaviour overrides ---
@@ -191,7 +251,7 @@ namespace AZ
                 // Assert the view has our draw list (the view's DrawlistTags are collected from passes using its viewTag)
                 // AZ_Assert(view->HasDrawListTag(m_drawListTag), "View's DrawListTags out of sync with pass'. ");
 
-                // Draw List 
+                // Draw List
                 viewDrawList = view->GetDrawList(m_drawListTag);
             }
 
@@ -242,7 +302,52 @@ namespace AZ
 
         void RasterPass::SetupFrameGraphDependencies(RHI::FrameGraphInterface frameGraph)
         {
-            RenderPass::SetupFrameGraphDependencies(frameGraph);
+            for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
+            {
+                const auto& attachmentBinding = m_attachmentBindings[slotIndex];
+
+                if (attachmentBinding.GetAttachment() != nullptr &&
+                    frameGraph.GetAttachmentDatabase().IsAttachmentValid(attachmentBinding.GetAttachment()->GetAttachmentId()))
+                {
+                    if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::Resolve)
+                    {
+                        const auto& prevBinding = m_attachmentBindings[slotIndex - 1];
+                        RHI::ResolveScopeAttachmentDescriptor descriptor;
+                        descriptor.m_attachmentId = attachmentBinding.GetAttachment()->GetAttachmentId();
+                        descriptor.m_loadStoreAction.m_loadAction = RHI::AttachmentLoadAction::DontCare;
+                        descriptor.m_resolveAttachmentId = prevBinding.GetAttachment()->GetAttachmentId();
+                        descriptor.m_imageViewDescriptor.m_aspectFlags =
+                                prevBinding.m_unifiedScopeDesc.GetAsImage().m_imageViewDescriptor.m_aspectFlags;
+                        frameGraph.UseResolveAttachment(descriptor);
+                        continue;
+                    }
+                    
+                    switch (attachmentBinding.m_unifiedScopeDesc.GetType())
+                    {
+                    case RHI::AttachmentType::Image:
+                        {
+                            frameGraph.UseAttachment(
+                                attachmentBinding.m_unifiedScopeDesc.GetAsImage(),
+                                attachmentBinding.GetAttachmentAccess(),
+                                attachmentBinding.m_scopeAttachmentUsage);
+                            break;
+                        }
+                    case RHI::AttachmentType::Buffer:
+                        {
+                            frameGraph.UseAttachment(
+                                attachmentBinding.m_unifiedScopeDesc.GetAsBuffer(),
+                                attachmentBinding.GetAttachmentAccess(),
+                                attachmentBinding.m_scopeAttachmentUsage);
+                            break;
+                        }
+                    default:
+                        AZ_Assert(false, "Error, trying to bind an attachment that is neither an image nor a buffer!");
+                        break;
+                    }
+                }
+            }
+            DeclarePassDependenciesToFrameGraph(frameGraph);
+            AddScopeQueryToFrameGraph(frameGraph);
             frameGraph.SetEstimatedItemCount(static_cast<uint32_t>(m_drawListView.size()));
         }
 

@@ -41,8 +41,8 @@ namespace AZ
             m_renderPass = descriptor.m_renderPass;
             AZ_Assert(!descriptor.m_attachmentImageViews.empty(), "Descriptor have no image view.");
 
-            m_attachments.resize(descriptor.m_attachmentImageViews.size());          
-           
+            m_attachments.resize(descriptor.m_attachmentImageViews.size());
+
             // An attachment (ImageView) become stale when the corresponding resource (Image) is updated,
             // and Framebuffer have to be updated then (after the update of the attachment).
             // ResourceInvalidateBus informs the update of a resource.
@@ -133,7 +133,7 @@ namespace AZ
                 // On such a case, the update of the resource should be ignored.
                 return RHI::ResultCode::Success;
             }
-            
+
             const RHI::ResultCode result = BuildNativeFramebuffer();
             if (result == RHI::ResultCode::Success)
             {
@@ -173,8 +173,11 @@ namespace AZ
             createInfo.layers = maxLayers;
 
             auto& device = static_cast<Device&>(GetDevice());
-            const VkResult result = device.GetContext().CreateFramebuffer(
-                device.GetNativeDevice(), &createInfo, VkSystemAllocator::Get(), &m_nativeFramebuffer);
+            const auto & myCtx = device.GetContext();
+            auto myVkDev = device.GetNativeDevice();
+            auto mySysAllocPtr = VkSystemAllocator::Get();
+            const VkResult result = myCtx.CreateFramebuffer(
+                    myVkDev, &createInfo, mySysAllocPtr, &m_nativeFramebuffer);
 
             return ConvertResult(result);
         }

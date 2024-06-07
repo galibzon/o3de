@@ -14,21 +14,57 @@
                     "SlotType": "Input",
                     "ScopeAttachmentUsage": "Shader"
                 },
-                // Outputs...
+                // Outputs... ORIGINAL
+                //{
+                //    "Name": "DepthStencilOutput",
+                //    "SlotType": "Output",
+                //    "ScopeAttachmentUsage": "DepthStencil",
+                //    "LoadStoreAction": {
+                //        "ClearValue": {
+                //            "Type": "DepthStencil"
+                //        },
+                //        "LoadAction": "Clear",
+                //        "LoadActionStencil": "Clear"
+                //    }
+                //},
+                //{
+                //    "Name": "LightingOutput",
+                //    "SlotType": "Output",
+                //    "ScopeAttachmentUsage": "RenderTarget",
+                //    "LoadStoreAction": {
+                //        "ClearValue": {
+                //            "Value": [
+                //                0.0,
+                //                0.0,
+                //                0.0,
+                //                0.0
+                //            ]
+                //        },
+                //        "LoadAction": "Clear"
+                //    }
+                //}
+                // MSAA Outputs
                 {
-                    "Name": "DepthStencilOutput",
+                    "Name": "MSAADepthStencilOutput",
                     "SlotType": "Output",
                     "ScopeAttachmentUsage": "DepthStencil",
+                    "ImageViewDesc": {
+                        "AspectFlags": [
+                            "Depth"
+                        ]
+                    },
                     "LoadStoreAction": {
                         "ClearValue": {
                             "Type": "DepthStencil"
                         },
                         "LoadAction": "Clear",
-                        "LoadActionStencil": "Clear"
+                        "LoadActionStencil": "DontCare",
+                        "StoreAction": "DontCare",
+                        "StoreActionStencil": "DontCare"
                     }
                 },
                 {
-                    "Name": "LightingOutput",
+                    "Name": "MSAALightingOutput",
                     "SlotType": "Output",
                     "ScopeAttachmentUsage": "RenderTarget",
                     "LoadStoreAction": {
@@ -40,11 +76,98 @@
                                 0.0
                             ]
                         },
-                        "LoadAction": "Clear"
+                        "LoadAction": "Clear",
+                        "StoreAction": "DontCare",
+                        "LoadActionStencil": "DontCare",
+                        "StoreActionStencil": "DontCare"
+                    }
+                },
+                // The resolve attachment must be consecutive.
+                {
+                    "Name": "LightingOutput",
+                    "SlotType": "Output",
+                    "ScopeAttachmentUsage": "Resolve",
+                    "LoadStoreAction": {
+                        "LoadAction": "DontCare",
+                        "StoreAction": "Store",
+                        "LoadActionStencil": "DontCare",
+                        "StoreActionStencil": "DontCare"
                     }
                 }
             ],
-            "ImageAttachments": [               
+            "ImageAttachments": [
+                {
+                    "Name": "BRDFTexture",
+                    "Lifetime": "Imported",
+                    "AssetRef": {
+                        "FilePath": "Textures/BRDFTexture.attimage"
+                    }
+                },
+                // ORIGINAL       
+                //{
+                //    "Name": "LightingAttachment",
+                //    "SizeSource": {
+                //      "Source": {
+                //        "Pass": "Parent",
+                //        "Attachment": "PipelineOutput"
+                //      }
+                //    },
+                //  "MultisampleSource": {
+                //    "Pass": "Pipeline"
+                //  },
+                //    "ImageDescriptor": {
+                //      "Format": "R16G16B16A16_FLOAT",
+                //      "SharedQueueMask": "Graphics"
+                //    }
+                //},
+                //{
+                //    "Name": "DepthAttachment",
+                //    "SizeSource": {
+                //      "Source": {
+                //        "Pass": "Parent",
+                //        "Attachment": "PipelineOutput"
+                //      }
+                //    },
+                //    "MultisampleSource": {
+                //      "Pass": "Pipeline"
+                //    },
+                //    "ImageDescriptor": {
+                //      "Format": "D32_FLOAT_S8X24_UINT",
+                //      "SharedQueueMask": "Graphics"
+                //    }
+                //}
+                {
+                    "Name": "MSAALightingAttachment",
+                    "SizeSource": {
+                      "Source": {
+                        "Pass": "Parent",
+                        "Attachment": "PipelineOutput"
+                      }
+                    },
+                  "MultisampleSource": {
+                    "Pass": "Pipeline"
+                  },
+                    "ImageDescriptor": {
+                      "Format": "R16G16B16A16_FLOAT",
+                      "SharedQueueMask": "Graphics"
+                    }
+                },
+                {
+                    "Name": "MSAADepthAttachment",
+                    "SizeSource": {
+                      "Source": {
+                        "Pass": "Parent",
+                        "Attachment": "PipelineOutput"
+                      }
+                    },
+                    "MultisampleSource": {
+                      "Pass": "Pipeline"
+                    },
+                    "ImageDescriptor": {
+                      "Format": "D32_FLOAT_S8X24_UINT",
+                      "SharedQueueMask": "Graphics"
+                    }
+                },
                 {
                     "Name": "LightingAttachment",
                     "SizeSource": {
@@ -53,56 +176,54 @@
                         "Attachment": "PipelineOutput"
                       }
                     },
-                  "MultisampleSource": {
-                    "Pass": "Parent",
-                    "Attachment": "PipelineOutput"
-                  },
                     "ImageDescriptor": {
                       "Format": "R16G16B16A16_FLOAT",
                       "SharedQueueMask": "Graphics"
-                    }
-                },
-                {
-                    "Name": "DepthAttachment",
-                    "SizeSource": {
-                      "Source": {
-                        "Pass": "Parent",
-                        "Attachment": "PipelineOutput"
-                      }
-                    },
-                    "ImageDescriptor": {
-                      "Format": "D32_FLOAT_S8X24_UINT",
-                      "SharedQueueMask": "Graphics"
-                    }
-                },
-                {
-                    "Name": "BRDFTexture",
-                    "Lifetime": "Imported",
-                    "AssetRef": {
-                        "FilePath": "Textures/BRDFTexture.attimage"
                     }
                 }
             ],
             "Connections": [
                 {
-                  "LocalSlot": "DepthStencilOutput",
+                    "LocalSlot": "BRDFTextureInput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "BRDFTexture"
+                    }
+                },
+                // ORIGINAL
+                //{
+                //  "LocalSlot": "DepthStencilOutput",
+                //  "AttachmentRef": {
+                //    "Pass": "This",
+                //    "Attachment": "DepthAttachment"
+                //  }
+                //},
+                //{
+                //    "LocalSlot": "LightingOutput",
+                //    "AttachmentRef": {
+                //        "Pass": "This",
+                //        "Attachment": "LightingAttachment"
+                //    }
+                //}
+                {
+                  "LocalSlot": "MSAADepthStencilOutput",
                   "AttachmentRef": {
                     "Pass": "This",
-                    "Attachment": "DepthAttachment"
+                    "Attachment": "MSAADepthAttachment"
                   }
+                },
+                {
+                    "LocalSlot": "MSAALightingOutput",
+                    "AttachmentRef": {
+                        "Pass": "This",
+                        "Attachment": "MSAALightingAttachment"
+                    }
                 },
                 {
                     "LocalSlot": "LightingOutput",
                     "AttachmentRef": {
                         "Pass": "This",
                         "Attachment": "LightingAttachment"
-                    }
-                },
-                {
-                    "LocalSlot": "BRDFTextureInput",
-                    "AttachmentRef": {
-                        "Pass": "This",
-                        "Attachment": "BRDFTexture"
                     }
                 }
             ]

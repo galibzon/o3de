@@ -10,6 +10,7 @@
 #include <Atom/RHI.Reflect/Handle.h>
 #include <Atom/RHI.Reflect/Scissor.h>
 #include <Atom/RHI.Reflect/Viewport.h>
+#include <Atom/RHI.Reflect/RenderAttachmentLayout.h>
 
 #include <Atom/RPI.Public/Pass/PassUtils.h>
 #include <Atom/RPI.Public/Pass/RenderPass.h>
@@ -44,6 +45,9 @@ namespace AZ
             ShaderResourceGroup* GetShaderResourceGroup();
 
             uint32_t GetDrawItemCount();
+
+            // RenderPass override
+            RHI::RenderAttachmentConfiguration GetRenderAttachmentConfiguration() const override;
 
         protected:
             explicit RasterPass(const PassDescriptor& descriptor);
