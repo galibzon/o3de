@@ -10,8 +10,6 @@
 
 #include <Atom/RHI/Factory.h>
 #include <Atom/RHI.Reflect/Vulkan/Base.h>
-#include <Atom/RHI/RenderAttachmentLayoutNotificationsInterface.h>
-
 #include <AzCore/Component/Component.h>
 
 namespace AZ
@@ -21,7 +19,6 @@ namespace AZ
         class SystemComponent final
             : public AZ::Component
             , public RHI::Factory
-            , public RHI::RenderAttachmentLayoutNotificationsInterface::Registrar
         {
         public:
             AZ_COMPONENT(SystemComponent, "{63A5BE62-43F4-45B9-93FE-E1C6371C457D}");
@@ -77,11 +74,6 @@ namespace AZ
             RHI::Ptr<RHI::RayTracingPipelineState> CreateRayTracingPipelineState() override;
             RHI::Ptr<RHI::RayTracingShaderTable> CreateRayTracingShaderTable() override;
             RHI::Ptr<RHI::DispatchRaysIndirectBuffer> CreateDispatchRaysIndirectBuffer() override;
-            ///////////////////////////////////////////////////////////////////
-
-            ///////////////////////////////////////////////////////////////////
-            // RenderAttachmentLayoutNotificationsInterface overrides
-            void SetLayoutForSubpasses(const AZStd::vector<RHI::ScopeId>& scopeIds, const RHI::RenderAttachmentLayout& layout) override;
             ///////////////////////////////////////////////////////////////////
 
         private:

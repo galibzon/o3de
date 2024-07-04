@@ -17,8 +17,6 @@
 #include <RHI/RenderPass.h>
 #include <RHI/Scope.h>
 
-#include "SubpassDependencies.h"
-
 namespace AZ
 {
     namespace Vulkan
@@ -332,18 +330,6 @@ namespace AZ
                 }
             }
 
-            if ((m_subpassCount > 1) && (m_subpassCount == m_renderpassDesc.m_subpassCount))
-            {
-                const auto subpassDependenciesPtr = SubpassDependenciesManager::GetInstance().GetSubpassDependencies(scope.GetId());
-                AZ_Assert(subpassDependenciesPtr != nullptr, "Subpass Dependencies for scope [%s] do not exist.", scope.GetId().GetCStr());
-                AZ_Assert(subpassDependenciesPtr->m_subpassCount == m_subpassCount,
-                    "Subpass Dependencies for scope [%s] was created for %u subpasses, but this Render Pass is being created with %u subpasses",
-                    scope.GetId().GetCStr(), subpassDependenciesPtr->m_subpassCount, m_subpassCount);
-                subpassDependenciesPtr->CopySubpassDependencies(m_renderpassDesc.m_subpassDependencies);
-            }
-
-            // TODO: The following block should NOT exist because Subpasses in Vulkan
-            //    are only relevant for Raster passes that share Render Targets (images, not buffers).
             // Add the subpass dependencies from the buffer attachments.
             for (size_t index = 0; index < scope.GetBufferAttachments().size(); ++index)
             {
@@ -369,6 +355,8 @@ namespace AZ
                     }
                 }
             }      
+
+            m_renderpassDesc.MergeSubpassDependencies();
 
             builtContext.m_renderPass = m_device.AcquireRenderPass(m_renderpassDesc);
             if (!builtContext.m_renderPass)

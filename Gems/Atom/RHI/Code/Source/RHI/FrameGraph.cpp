@@ -370,7 +370,6 @@ namespace AZ::RHI
         }
 
         // TODO:[ATOM-1267] Replace with writer / reader dependencies.
-        GraphEdgeType edgeType = usage == ScopeAttachmentUsage::SubpassInput ? GraphEdgeType::SameGroup : GraphEdgeType::DifferentGroup;
         if (Scope* producer = frameAttachment.GetLastScope())
         {
             // If there's a last scope, we are at a scope subpass that is NOT the first subpass

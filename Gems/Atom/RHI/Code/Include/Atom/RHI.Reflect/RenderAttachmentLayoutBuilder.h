@@ -76,28 +76,38 @@ namespace AZ::RHI
         public:
             SubpassAttachmentLayoutBuilder(uint32_t subpassIndex);
 
+            uint32_t GetSubpassIndex() const;
+
             //! Adds the use of a new render target with resolve information.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 Format format,
-                bool resolve);
+                bool resolve,
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
 
             //! Adds the use of a previously added render target  with resolve information.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 const AZ::Name& name,
-                bool resolve);
+                bool resolve,
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
 
             //! Adds the use of a previously added render target.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 const AZ::Name& name,
                 const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
-                bool resolve = false);
+                bool resolve = false,
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
 
             //! Adds the use of a new render target.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 Format format,                    
                 const AZ::Name& name = {},
                 const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
-                bool resolve = false);
+                bool resolve = false,
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
 
             //! Adds the use of a new resolve attachment. The "sourceName" attachment must
             // be already be added as by this pass.
@@ -109,24 +119,35 @@ namespace AZ::RHI
             SubpassAttachmentLayoutBuilder* DepthStencilAttachment(
                 Format format,
                 const AZ::Name& name = {},
-                const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction());
+                const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::EarlyFragmentTest |
+                                                                     AZ::RHI::ScopeAttachmentStage::LateFragmentTest);
 
             //! Adds the use of a previously added depth/stencil attachment. The "name" attachment must
             // be already be added as by a previous pass.
             SubpassAttachmentLayoutBuilder* DepthStencilAttachment(
                 const AZ::Name name = {},
-                const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction());
+                const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::EarlyFragmentTest |
+                                                                    AZ::RHI::ScopeAttachmentStage::LateFragmentTest);
 
             //! Adds the use of a previously added depth/stencil attachment.
             SubpassAttachmentLayoutBuilder* DepthStencilAttachment(
-                const AttachmentLoadStoreAction& loadStoreAction);
+                const AttachmentLoadStoreAction& loadStoreAction,
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::EarlyFragmentTest |
+                                                                     AZ::RHI::ScopeAttachmentStage::LateFragmentTest);
 
             // Adds the use of a subpass input attachment. The "name" attachment must
             // be already be added as by a previous pass.
             // "aspectFlags" is used by some implementations (e.g. Vulkan) when building the renderpass
             SubpassAttachmentLayoutBuilder* SubpassInputAttachment(
                 const AZ::Name& name,
-                RHI::ImageAspectFlags aspectFlags);
+                RHI::ImageAspectFlags aspectFlags,
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Read,
+                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::Any);
 
             // Adds the use of a shading rate attachment.
             SubpassAttachmentLayoutBuilder* ShadingRateAttachment(
@@ -140,12 +161,28 @@ namespace AZ::RHI
                 Format m_format = Format::Unknown;
                 AttachmentLoadStoreAction m_loadStoreAction;
                 AZ::Name m_resolveName;
+                //! The following two flags are only relevant when there are more than one subpasses
+                //! that will be merged.
+                //! The scope attachment access as defined in the pass template, which will be used
+                //! to accurately define the subpass dependencies.
+                AZ::RHI::ScopeAttachmentAccess m_scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Unknown;
+                //! The scope attachment stage as defined in the pass template, which will be used
+                //! to accurately define the subpass dependencies.
+                AZ::RHI::ScopeAttachmentStage m_scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::Uninitialized;
             };
 
             struct SubpassAttachmentEntry
             {
                 AZ::Name m_name;
                 RHI::ImageAspectFlags m_imageAspects = RHI::ImageAspectFlags::None;
+                //! The following two flags are only relevant when there are more than one subpasses
+                //! that will be merged.
+                //! The scope attachment access as defined in the pass template, which will be used
+                //! to accurately define the subpass dependencies.
+                AZ::RHI::ScopeAttachmentAccess m_scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Unknown;
+                //! The scope attachment stage as defined in the pass template, which will be used
+                //! to accurately define the subpass dependencies.
+                AZ::RHI::ScopeAttachmentStage m_scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::Uninitialized;
             };
 
             AZStd::fixed_vector<RenderAttachmentEntry, RHI::Limits::Pipeline::AttachmentColorCountMax> m_renderTargetAttachments;
@@ -153,21 +190,14 @@ namespace AZ::RHI
             RenderAttachmentEntry m_depthStencilAttachment;
             RenderAttachmentEntry m_shadingRateAttachment;
             uint32_t m_subpassIndex = 0;
-            //! ScopeId for this subpass.
-            RHI::ScopeId m_subpassScopeId;
         };
 
         RenderAttachmentLayoutBuilder();
 
         //! Adds a new subpass to the layout.
-        //! @param subpassScopeId The subpass ScopeId is only required when there are two or more subpasses.
-        //!     Once a RenderAttachmentLayout is built, the list of ScopeIds (subpasses) that use
-        //!     the same RenderAttachmentLayout will be reported to the RHI.
-        SubpassAttachmentLayoutBuilder* AddSubpass(const RHI::ScopeId * subpassScopeId = nullptr);
+        SubpassAttachmentLayoutBuilder* AddSubpass();
 
         //! Ends the building of a layout. Returns the result of the operation.
-        //! When there are two or more subpasses, the list of subpasses using the built
-        //! RenderAttachmentLayout is reported to the RHI.
         ResultCode End(RenderAttachmentLayout& builtRenderAttachmentLayout);
 
         //! Resets all previous values so the builder can be reuse.

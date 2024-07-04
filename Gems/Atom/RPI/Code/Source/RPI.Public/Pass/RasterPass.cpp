@@ -100,8 +100,7 @@ namespace AZ
         }
 
         bool RasterPass::BuildSubpassLayout(
-            RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder,
-            uint32_t subpassIndex)
+            RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder)
         {
             if (!m_flags.m_mergeChildrenAsSubpasses)
             {
@@ -110,7 +109,7 @@ namespace AZ
                 return false;
             }
 
-            m_subpassIndex = subpassIndex;
+            m_subpassIndex = subpassLayoutBuilder.GetSubpassIndex();
 
             bool atLeastOneAttachmentWasSubpassInput = false;
             for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
@@ -126,7 +125,9 @@ namespace AZ
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::DepthStencil)
                 {
                     subpassLayoutBuilder.DepthStencilAttachment(
-                        binding.GetAttachment()->m_descriptor.m_image.m_format, binding.GetAttachment()->GetAttachmentId());
+                        binding.GetAttachment()->m_descriptor.m_image.m_format, binding.GetAttachment()->GetAttachmentId(),
+                        binding.m_unifiedScopeDesc.m_loadStoreAction,
+                        binding.GetAttachmentAccess(), binding.m_scopeAttachmentStage);
                     continue;
                 }
 
@@ -140,12 +141,13 @@ namespace AZ
 
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
                 {
-                    AZ_Assert(subpassIndex > 0, "The first subpass can't have attachments used as SubpassInput");
+                    AZ_Assert(m_subpassIndex > 0, "The first subpass can't have attachments used as SubpassInput");
                     AZ_Assert(binding.m_unifiedScopeDesc.GetType() == RHI::AttachmentType::Image,
                         "Only image attachments are allowed as SubpassInput.");
                     atLeastOneAttachmentWasSubpassInput = true;
                     const auto aspectFlags = binding.m_unifiedScopeDesc.GetAsImage().m_imageViewDescriptor.m_aspectFlags;
-                    subpassLayoutBuilder.SubpassInputAttachment(binding.GetAttachment()->GetAttachmentId(), aspectFlags);
+                    subpassLayoutBuilder.SubpassInputAttachment(binding.GetAttachment()->GetAttachmentId(), aspectFlags,
+                        binding.GetAttachmentAccess(), binding.m_scopeAttachmentStage);
                     continue;
                 }
 
@@ -158,11 +160,14 @@ namespace AZ
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::RenderTarget)
                 {
                     RHI::Format format = binding.GetAttachment()->m_descriptor.m_image.m_format;
-                    subpassLayoutBuilder.RenderTargetAttachment(format, binding.GetAttachment()->GetAttachmentId());
+                    subpassLayoutBuilder.RenderTargetAttachment(format, binding.GetAttachment()->GetAttachmentId(),
+                        binding.m_unifiedScopeDesc.m_loadStoreAction,
+                        false /*resolve*/,
+                        binding.GetAttachmentAccess(), binding.m_scopeAttachmentStage);
                 }
             }
 
-            if (subpassIndex > 0)
+            if (m_subpassIndex > 0)
             {
                 if (!atLeastOneAttachmentWasSubpassInput)
                 {
@@ -409,14 +414,16 @@ namespace AZ
                             if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
                             {
                                 AZ_Assert(m_flags.m_mergeChildrenAsSubpasses, "SubpassInputs are only allowed in RasterPasses that are mergeable as subpass.");
-                                frameGraph.UseSubpassInputAttachment(imageScopeAttachmentDescriptor);
+                                frameGraph.UseSubpassInputAttachment(
+                                    imageScopeAttachmentDescriptor, attachmentBinding.m_scopeAttachmentStage);
                             }
                             else
                             {
                                 frameGraph.UseAttachment(
                                     imageScopeAttachmentDescriptor,
                                     attachmentBinding.GetAttachmentAccess(),
-                                    attachmentBinding.m_scopeAttachmentUsage);
+                                    attachmentBinding.m_scopeAttachmentUsage,
+                                    attachmentBinding.m_scopeAttachmentStage);
                             }
                             break;
                         }
@@ -425,7 +432,8 @@ namespace AZ
                             frameGraph.UseAttachment(
                                 attachmentBinding.m_unifiedScopeDesc.GetAsBuffer(),
                                 attachmentBinding.GetAttachmentAccess(),
-                                attachmentBinding.m_scopeAttachmentUsage);
+                                attachmentBinding.m_scopeAttachmentUsage,
+                                attachmentBinding.m_scopeAttachmentStage);
                             break;
                         }
                     default:

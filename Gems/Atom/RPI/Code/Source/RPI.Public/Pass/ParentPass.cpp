@@ -21,6 +21,7 @@
 #include <Atom/RPI.Reflect/Pass/PassName.h>
 #include <Atom/RPI.Reflect/Pass/PassRequest.h>
 
+#include <Atom/RHI/RHISystemInterface.h>
 #include <Atom/RHI.Reflect/RenderAttachmentLayout.h>
 #include <Atom/RHI.Reflect/RenderAttachmentLayoutBuilder.h>
 
@@ -45,9 +46,11 @@ namespace AZ
             : Pass(descriptor)
         {
             m_flags.m_createChildren = true;
-            if (m_passData)
+            if (m_passData && m_passData->m_mergeChildrenAsSubpasses)
             {
-                m_flags.m_mergeChildrenAsSubpasses = m_passData->m_mergeChildrenAsSubpasses;
+                AZ_Assert(RHI::RHISystemInterface::Get()->CanMergeSubpasses(),
+                    "Can not create parent pass '%s' because the active RHI can't merge subpasses.", descriptor.m_passName.GetCStr());
+                m_flags.m_mergeChildrenAsSubpasses = true;
             }
         }
 
@@ -552,8 +555,8 @@ namespace AZ
             {
                 RasterPass* rasterChild = azrtti_cast<RasterPass*>(m_children[subpassIndex].get());
                 AZ_Assert(rasterChild != nullptr, "When merging subpasses, all children must be RasterPass");
-                auto* layoutBuilder = builder.AddSubpass(&rasterChild->GetPathName());
-                if (!rasterChild->BuildSubpassLayout(*layoutBuilder, subpassIndex))
+                auto* layoutBuilder = builder.AddSubpass();
+                if (!rasterChild->BuildSubpassLayout(*layoutBuilder))
                 {
                     AZ_Error("ParentPass", false, "RasterPass [%s] failed to build its subpass layout.\n", rasterChild->GetName().GetCStr());
                     allChildrenBuiltLayout = false;

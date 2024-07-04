@@ -48,8 +48,7 @@ namespace AZ
             //!     For the most part this is a constant function, except for the fact that @m_subpassIndex
             //!     stores @subpassIndex which will be used later for validation.
             virtual bool BuildSubpassLayout(
-                RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder,
-                uint32_t subpassIndex);
+                RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder);
 
             //! Sets the final RenderAttachmentLayout that this RasterPass should use
             //! to work well as a Subpass. Only called when this RasterPass is a Subpass.

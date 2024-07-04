@@ -35,11 +35,18 @@ namespace AZ
         }
 
         FullscreenTrianglePass::FullscreenTrianglePass(const PassDescriptor& descriptor)
-            : RenderPass(descriptor)
+            : RasterPass(descriptor)
             , m_passDescriptor(descriptor)
         {
             m_defaultShaderAttachmentStage = RHI::ScopeAttachmentStage::FragmentShader;
             LoadShader();
+
+            // Even though this is a RasterPass, it works differently than expected
+            // because it doesn't need draw items from Views. Instead this pass creates its own
+            // draw item (one triangle that covers the whole screen). We set a dummy DrawListTag
+            // with the pass name to avoid warnings from the RPI.
+            auto dummyTag = AZStd::string::format("%s_dummyTag", GetName().GetCStr());
+            SetDrawListTag(AZ::Name(dummyTag));
         }
 
         FullscreenTrianglePass::~FullscreenTrianglePass()
@@ -197,7 +204,7 @@ namespace AZ
 
         void FullscreenTrianglePass::InitializeInternal()
         {
-            RenderPass::InitializeInternal();
+            RasterPass::InitializeInternal();
             
             ShaderReloadDebugTracker::ScopedSection reloadSection("{%p}->FullscreenTrianglePass::InitializeInternal", this);
 
@@ -236,14 +243,14 @@ namespace AZ
             m_scissorState.m_maxX = static_cast<int32_t>(targetImageSize.m_width);
             m_scissorState.m_maxY = static_cast<int32_t>(targetImageSize.m_height);
 
-            RenderPass::FrameBeginInternal(params);
+            RasterPass::FrameBeginInternal(params);
         }
 
         // Scope producer functions
 
         void FullscreenTrianglePass::SetupFrameGraphDependencies(RHI::FrameGraphInterface frameGraph)
         {
-            RenderPass::SetupFrameGraphDependencies(frameGraph);
+            RasterPass::SetupFrameGraphDependencies(frameGraph);
 
             // Update scissor/viewport regions based on the mip level of the render target that is being written into
             uint16_t viewMinMip = RHI::ImageSubresourceRange::HighestSliceIndex;
