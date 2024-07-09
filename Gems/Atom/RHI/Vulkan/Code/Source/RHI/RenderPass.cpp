@@ -13,8 +13,6 @@
 #include <memory>
 #include <Atom/RHI.Reflect/VkAllocator.h>
 
-#define RETURN_IF(cond) if (cond) return;
-
 namespace AZ
 {
     namespace Vulkan
@@ -423,16 +421,24 @@ namespace AZ
             {
                 m_subpassCount = renderPassDesc.m_subpassCount;
                 AZ_Assert(m_subpassCount > 0, "Invalid Subpass Count from Render Pass Descriptor.");
+
                 // Subpass dependencies only matter when there's more than one subpass.
                 // The usage of this helper class will be a no-op.
-                RETURN_IF(m_subpassCount < 2);
+                if (m_subpassCount < 2)
+                {
+                    return;
+                }
+
                 m_srcPipelineAccessFlags.resize(renderPassDesc.m_attachmentCount);
             }
 
             //! Marks the beginning of a new subpass.
             void AddSubpassPipelineStageFlags(uint32_t currentSubpassIndex)
             {
-                RETURN_IF(m_subpassCount < 2); // Subpass dependencies only matter when there's more than one subpass.
+                if (m_subpassCount < 2) // Subpass dependencies only matter when there's more than one subpass.
+                {
+                    return;
+                }
 
                 m_subpassesPipelineStageFlagsList.push_back({});
                 AZ_Assert(m_currentSubpassIndex != currentSubpassIndex, "The new subpass index can not be the same as the current subpass index");
@@ -446,7 +452,10 @@ namespace AZ
                                       const AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,
                                       const VkImageUsageFlags shadingRateAttachmentUsageFlags = 0 /* Only relevant for shading rate attachment usage*/)
             {
-                RETURN_IF(m_subpassCount < 2); // Subpass dependencies only matter when there's more than one subpass.
+                if (m_subpassCount < 2) // Subpass dependencies only matter when there's more than one subpass.
+                {
+                    return;
+                }
 
                 const uint32_t dstSubpassIndex = m_currentSubpassIndex;
 
@@ -481,7 +490,10 @@ namespace AZ
                 // so no need to add the resource dependency, BUT one thing to keep in mind is that
                 // resolve attachments can't be referenced in the following subpass (+1), but they could
                 // be referenced in the subpasses (+2, or +3, etc).
-                RETURN_IF(scopeAttachmentUsage == AZ::RHI::ScopeAttachmentUsage::Resolve);
+                if (scopeAttachmentUsage == AZ::RHI::ScopeAttachmentUsage::Resolve)
+                {
+                    return;
+                }
 
                 m_renderPassDescriptor.m_subpassDependencies.emplace_back();
                 VkSubpassDependency& dependency = m_renderPassDescriptor.m_subpassDependencies.back();
@@ -512,7 +524,10 @@ namespace AZ
 
         void RenderPass::Descriptor::MergeSubpassDependencies()
         {
-            RETURN_IF( (m_subpassCount < 2) || (m_subpassDependencies.size() < 2) );
+            if ( (m_subpassCount < 2) || (m_subpassDependencies.size() < 2) )
+            {
+                return;
+            }
 
             //! Only two bits are active at a time. One for Source Subpass, the other for Destination Subpass 
             using SubpassPairMask = uint32_t;

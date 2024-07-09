@@ -82,23 +82,20 @@ namespace AZ::RHI
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 Format format,
                 bool resolve,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
-                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
 
             //! Adds the use of a previously added render target  with resolve information.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 const AZ::Name& name,
                 bool resolve,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
-                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
 
             //! Adds the use of a previously added render target.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 const AZ::Name& name,
                 const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
                 bool resolve = false,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
-                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
 
             //! Adds the use of a new render target.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
@@ -106,8 +103,7 @@ namespace AZ::RHI
                 const AZ::Name& name = {},
                 const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
                 bool resolve = false,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write,
-                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput);
+                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
 
             //! Adds the use of a new resolve attachment. The "sourceName" attachment must
             // be already be added as by this pass.
@@ -145,9 +141,7 @@ namespace AZ::RHI
             // "aspectFlags" is used by some implementations (e.g. Vulkan) when building the renderpass
             SubpassAttachmentLayoutBuilder* SubpassInputAttachment(
                 const AZ::Name& name,
-                RHI::ImageAspectFlags aspectFlags,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Read,
-                AZ::RHI::ScopeAttachmentStage scopeAttachmentStage = AZ::RHI::ScopeAttachmentStage::Any);
+                RHI::ImageAspectFlags aspectFlags);
 
             // Adds the use of a shading rate attachment.
             SubpassAttachmentLayoutBuilder* ShadingRateAttachment(

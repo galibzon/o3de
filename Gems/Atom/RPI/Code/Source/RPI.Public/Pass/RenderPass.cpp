@@ -14,7 +14,6 @@
 #include <Atom/RHI/RHIUtils.h>
 
 #include <Atom/RHI.Reflect/ImageScopeAttachmentDescriptor.h>
-#include <Atom/RHI.Reflect/RenderAttachmentLayoutBuilder.h>
 #include <Atom/RHI.Reflect/Size.h>
 #include <Atom/RPI.Public/Base.h>
 #include <Atom/RPI.Reflect/Pass/RenderPassData.h>
@@ -50,11 +49,34 @@ namespace AZ
         {
         }
 
-        RHI::RenderAttachmentConfiguration RenderPass::GetRenderAttachmentConfiguration() const
+        RHI::RenderAttachmentConfiguration RenderPass::GetRenderAttachmentConfiguration()
         {
+            if (m_renderAttachmentLayout)
+            {
+                return { *m_renderAttachmentLayout.get(), m_subpassIndex };
+            }
+
             RHI::RenderAttachmentLayoutBuilder builder;
             auto* layoutBuilder = builder.AddSubpass();
 
+            const bool success = BuildSubpassLayout(*layoutBuilder);
+            AZ_Assert(success, "Failed to add subpass layout for pass '%s'", GetName().GetCStr());
+
+            auto renderAttachmentLayout = AZStd::make_shared<RHI::RenderAttachmentLayout>();
+            const RHI::ResultCode resultCode = builder.End(*renderAttachmentLayout.get());
+            AZ_Assert(resultCode == RHI::ResultCode::Success, "Failed to build subpass layout for pass '%s'", GetName().GetCStr());
+
+            constexpr uint32_t subpassIndex = 0;
+            SetRenderAttachmentLayout(renderAttachmentLayout, subpassIndex);
+
+            return { *m_renderAttachmentLayout.get(), m_subpassIndex };
+        }
+
+        bool RenderPass::BuildSubpassLayout(RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder)
+        {
+            m_subpassIndex = subpassLayoutBuilder.GetSubpassIndex();
+
+            bool atLeastOneAttachmentWasSubpassInput = false;
             for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
             {
                 const PassAttachmentBinding& binding = m_attachmentBindings[slotIndex];
@@ -67,14 +89,36 @@ namespace AZ
                 // Handle the depth-stencil attachment. There should be only one.
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::DepthStencil)
                 {
-                    layoutBuilder->DepthStencilAttachment(binding.GetAttachment()->m_descriptor.m_image.m_format);
+                    subpassLayoutBuilder.DepthStencilAttachment(
+                        binding.GetAttachment()->m_descriptor.m_image.m_format,
+                        binding.GetAttachment()->GetAttachmentId(),
+                        binding.m_unifiedScopeDesc.m_loadStoreAction,
+                        binding.GetAttachmentAccess(),
+                        binding.m_scopeAttachmentStage);
                     continue;
                 }
 
                 // Handle shading rate attachment. There should be only one.
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::ShadingRate)
                 {
-                    layoutBuilder->ShadingRateAttachment(binding.GetAttachment()->m_descriptor.m_image.m_format);
+                    subpassLayoutBuilder.ShadingRateAttachment(
+                        binding.GetAttachment()->m_descriptor.m_image.m_format, binding.GetAttachment()->GetAttachmentId());
+                    continue;
+                }
+
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
+                {
+                    AZ_Assert(m_subpassIndex > 0, "The first subpass can't have attachments used as SubpassInput");
+                    AZ_Assert(
+                        binding.m_unifiedScopeDesc.GetType() == RHI::AttachmentType::Image,
+                        "Only image attachments are allowed as SubpassInput.");
+                    atLeastOneAttachmentWasSubpassInput = true;
+                    const auto aspectFlags = binding.m_unifiedScopeDesc.GetAsImage().m_imageViewDescriptor.m_aspectFlags;
+                    subpassLayoutBuilder.SubpassInputAttachment(
+                        binding.GetAttachment()->GetAttachmentId(),
+                        aspectFlags,
+                        binding.GetAttachmentAccess(),
+                        binding.m_scopeAttachmentStage);
                     continue;
                 }
 
@@ -87,14 +131,41 @@ namespace AZ
                 if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::RenderTarget)
                 {
                     RHI::Format format = binding.GetAttachment()->m_descriptor.m_image.m_format;
-                    layoutBuilder->RenderTargetAttachment(format);
+                    subpassLayoutBuilder.RenderTargetAttachment(
+                        format,
+                        binding.GetAttachment()->GetAttachmentId(),
+                        binding.m_unifiedScopeDesc.m_loadStoreAction,
+                        false /*resolve*/,
+                        binding.GetAttachmentAccess(),
+                        binding.m_scopeAttachmentStage);
                 }
             }
 
-            RHI::RenderAttachmentLayout layout;
-            [[maybe_unused]] RHI::ResultCode result = builder.End(layout);
-            AZ_Assert(result == RHI::ResultCode::Success, "RenderPass [%s] failed to create render attachment layout", GetPathName().GetCStr());
-            return RHI::RenderAttachmentConfiguration{ layout, 0 };
+            if (m_subpassIndex > 0)
+            {
+                if (!atLeastOneAttachmentWasSubpassInput)
+                {
+                    AZ_Assert(false, "Starting from the second subpass, at least one attachment must be of SubpassInput usage.");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        void RenderPass::SetRenderAttachmentLayout(
+            const AZStd::shared_ptr<RHI::RenderAttachmentLayout>& renderAttachmentLayout, uint32_t subpassIndex)
+        {
+            AZ_Error("RasterPass", m_subpassIndex == subpassIndex,
+                     "%s Error at pass '%s': Was expecting subpassIndex=%u, instead got=%u.\n", __FUNCTION__,
+                     GetName().GetCStr(), m_subpassIndex, subpassIndex);
+            // We throw an assert, in addition to reporting the error, because this is most likely a programming error
+            // and not a runtime error.
+            AZ_Assert(m_subpassIndex == subpassIndex,
+                "Error at pass '%s': Was expecting subpassIndex=%u, instead got=%u.\n",
+                GetName().GetCStr(),  m_subpassIndex, subpassIndex);
+
+            m_renderAttachmentLayout = renderAttachmentLayout;
         }
 
         RHI::MultisampleState RenderPass::GetMultisampleState() const
@@ -235,11 +306,20 @@ namespace AZ
                     {
                     case RHI::AttachmentType::Image:
                     {
-                        frameGraph.UseAttachment(
-                            attachmentBinding.m_unifiedScopeDesc.GetAsImage(),
-                            attachmentBinding.GetAttachmentAccess(),
-                            attachmentBinding.m_scopeAttachmentUsage,
-                            attachmentBinding.m_scopeAttachmentStage);
+                        AZ::RHI::ImageScopeAttachmentDescriptor imageScopeAttachmentDescriptor = attachmentBinding.m_unifiedScopeDesc.GetAsImage();
+                        if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::SubpassInput)
+                        {
+                            AZ_Assert(m_flags.m_mergeChildrenAsSubpasses, "SubpassInputs are only allowed in RenderPasses that are mergeable as subpass.");
+                            frameGraph.UseSubpassInputAttachment(imageScopeAttachmentDescriptor, attachmentBinding.m_scopeAttachmentStage);
+                        }
+                        else
+                        {
+                            frameGraph.UseAttachment(
+                                imageScopeAttachmentDescriptor,
+                                attachmentBinding.GetAttachmentAccess(),
+                                attachmentBinding.m_scopeAttachmentUsage,
+                                attachmentBinding.m_scopeAttachmentStage);
+                        }
                         break;
                     }
                     case RHI::AttachmentType::Buffer:

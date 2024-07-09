@@ -15,7 +15,7 @@
 #include <Atom/RPI.Public/Pass/PassDefines.h>
 #include <Atom/RPI.Public/Pass/PassSystemInterface.h>
 #include <Atom/RPI.Public/RenderPipeline.h>
-#include <Atom/RPI.Public/Pass/RasterPass.h>
+#include <Atom/RPI.Public/Pass/RenderPass.h>
 
 #include <Atom/RPI.Reflect/Pass/SlowClearPassData.h>
 #include <Atom/RPI.Reflect/Pass/PassName.h>
@@ -66,14 +66,14 @@ namespace AZ
         {
             if (m_flags.m_mergeChildrenAsSubpasses)
             {
-                if (auto* rasterchild = azrtti_cast<RasterPass*>(child.get()))
+                if (auto* childRenderPass = azrtti_cast<RenderPass*>(child.get()); childRenderPass && childRenderPass->CanBecomeSubpass())
                 {
-                    rasterchild->m_flags.m_mergeChildrenAsSubpasses = true;
+                    childRenderPass->m_flags.m_mergeChildrenAsSubpasses = true;
                 }
                 else
                 {
                     AZ_Warning("ParentPass",  false,
-                        "Can't merge child passes because child pass with name [%s] is NOT a RasterPass.\n",
+                        "Can't merge child passes because child pass with name [%s] is NOT a mergeable RenderPass.\n",
                         child->GetName().GetCStr());
                     m_flags.m_mergeChildrenAsSubpasses = false;
                 }
@@ -540,7 +540,7 @@ namespace AZ
             }
 
             // We validated already during AddChild() and InsertChild() that all children are
-            // of type RasterPass or subclass of RasterPass.
+            // mergeable RenderPass instances.
             const auto numSubpasses = m_children.size();
             if (numSubpasses < 2)
             {
@@ -553,12 +553,12 @@ namespace AZ
             RHI::RenderAttachmentLayoutBuilder builder;
             for (auto subpassIndex = 0;  subpassIndex < numSubpasses; subpassIndex++)
             {
-                RasterPass* rasterChild = azrtti_cast<RasterPass*>(m_children[subpassIndex].get());
-                AZ_Assert(rasterChild != nullptr, "When merging subpasses, all children must be RasterPass");
+                RenderPass* renderPassChild = azrtti_cast<RenderPass*>(m_children[subpassIndex].get());
+                AZ_Assert( (renderPassChild != nullptr) && renderPassChild->CanBecomeSubpass(), "When merging subpasses, all children must be mergeable RenderPass");
                 auto* layoutBuilder = builder.AddSubpass();
-                if (!rasterChild->BuildSubpassLayout(*layoutBuilder))
+                if (!renderPassChild->BuildSubpassLayout(*layoutBuilder))
                 {
-                    AZ_Error("ParentPass", false, "RasterPass [%s] failed to build its subpass layout.\n", rasterChild->GetName().GetCStr());
+                    AZ_Error("ParentPass", false, "RenderPass [%s] failed to build its subpass layout.\n", renderPassChild->GetName().GetCStr());
                     allChildrenBuiltLayout = false;
                     break;
                 }
@@ -577,21 +577,11 @@ namespace AZ
                 // Loop again across all children and set their RenderAttachmentConfiguration
                 for (auto subpassIndex = 0; subpassIndex < numSubpasses; subpassIndex++)
                 {
-                    RasterPass* rasterChild = azrtti_cast<RasterPass*>(m_children[subpassIndex].get());
-                    if (!rasterChild->SetRenderAttachmentLayout(renderAttachmentLayout, subpassIndex))
-                    {
-                        AZ_Error("ParentPass", false, "RasterPass [%s] failed to set its render attachment layout.\n", rasterChild->GetName().GetCStr());
-                        allChildrenBuiltLayout = false;
-                        break;
-                    }
+                    RenderPass* renderPassChild = azrtti_cast<RenderPass*>(m_children[subpassIndex].get());
+                    renderPassChild->SetRenderAttachmentLayout(renderAttachmentLayout, subpassIndex);
                 }
             }
 
-            if (!allChildrenBuiltLayout)
-            {
-                ClearMergeAsSubpassesFlag();
-                return;
-            }
         }
 
         // --- Debug functions ---

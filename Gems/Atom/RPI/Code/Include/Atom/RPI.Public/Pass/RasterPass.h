@@ -10,7 +10,6 @@
 #include <Atom/RHI.Reflect/Handle.h>
 #include <Atom/RHI.Reflect/Scissor.h>
 #include <Atom/RHI.Reflect/Viewport.h>
-#include <Atom/RHI.Reflect/RenderAttachmentLayoutBuilder.h>
 
 #include <Atom/RPI.Public/Pass/PassUtils.h>
 #include <Atom/RPI.Public/Pass/RenderPass.h>
@@ -20,7 +19,8 @@ namespace AZ
 {
     namespace RPI
     {
-        //! A RasterPass is a leaf pass (pass with no children) that is used for rasterization.
+        //! A RasterPass is a leaf pass (pass with no children) that is used for rasterization
+        //! and it is required to have a valid @m_drawListTag at runtime.
         class RasterPass
             : public RenderPass
         {
@@ -41,26 +41,6 @@ namespace AZ
 
             void SetPipelineStateDataIndex(uint32_t index);
 
-            //! Appends Subpass Attachment Layout data to @subpassLayoutBuilder. Only called when this RasterPass
-            //! is a Subpass.
-            //! @returns true if the subpass attachment data was appended successfully.
-            //! @remarks Invoked by a Parent Pass for each child Raster Pass that should be merged.
-            //!     For the most part this is a constant function, except for the fact that @m_subpassIndex
-            //!     stores @subpassIndex which will be used later for validation.
-            virtual bool BuildSubpassLayout(
-                RHI::RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder& subpassLayoutBuilder);
-
-            //! Sets the final RenderAttachmentLayout that this RasterPass should use
-            //! to work well as a Subpass. Only called when this RasterPass is a Subpass.
-            //! @returns true if the incoming data makes sense.
-            //! @remarks:
-            //!     The data in @renderAttachmentLayout will be used when GetRenderAttachmentConfiguration() is called.
-            bool SetRenderAttachmentLayout(const AZStd::shared_ptr<RHI::RenderAttachmentLayout>& renderAttachmentLayout,
-                                           uint32_t subpassIndex);
-
-            // RenderPass override
-            RHI::RenderAttachmentConfiguration GetRenderAttachmentConfiguration() const override;
-
             //! Expose shader resource group.
             ShaderResourceGroup* GetShaderResourceGroup();
 
@@ -69,10 +49,8 @@ namespace AZ
         protected:
             explicit RasterPass(const PassDescriptor& descriptor);
 
-            //! Binds all attachments to the current scope in the frameGraph.
-            //! Similar functionality as RenderPass::DeclareAttachmentsToFrameGraph(), but
-            //! RasterPass also binds "SubpassInput" attachments where applicable. 
-            void DeclareAttachmentsToFrameGraph(RHI::FrameGraphInterface frameGraph) const;
+            //! RenderPass override.
+            bool CanBecomeSubpass() override { return true; }
 
             // Pass behavior overrides
             void Validate(PassValidationResults& validationResults) override;
@@ -113,13 +91,6 @@ namespace AZ
             bool m_overrideViewportState = false;
             uint32_t m_drawItemCount = 0;
 
-            //! The following variables are only relevant when this Raster Pass will be merged by the RHI
-            //! as a subpass.
-           
-            //! Stores the RenderAttachmentLayout that should be used when GetRenderAttachmentConfiguration() is called.
-            AZStd::shared_ptr<RHI::RenderAttachmentLayout> m_renderAttachmentLayout;
-            //! Stores the Subpass Index for this subpass.
-            uint32_t m_subpassIndex = 0;
         };
     }   // namespace RPI
 }   // namespace AZ

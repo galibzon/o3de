@@ -446,20 +446,8 @@ namespace AZ
                         {
                             if (RHI::CheckBitsAll(imageAspects, RHI::ImageAspectFlags::Depth))
                             {
-                                // GALIB
-                                //<17 : 22 : 56>[Error](vkDebugMessage) -
-                                //    [ERROR][Validation] Validation Error
-                                //    : [UNASSIGNED - vkCmdExecuteCommands - commandBuffer - 00001] Object 0 : handle = 0x243f695bc90
-                                //    , type = VK_OBJECT_TYPE_COMMAND_BUFFER;
-                                //| MessageID = 0xfa96ea8e |
-                                //    vkCmdExecuteCommands()::Executed secondary command
-                                //        buffer using VkImage 0xc652d90000000b11 [Root.TwoSubpassesPipeline.ForwardPass.DepthAttachment](
-                                //                  subresource
-                                //                  : aspectMask 0x2 array layer 0, mip level 0)
-                                //            which expects layout VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL-- instead,
-                                //  image current layout is VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL
-                                //      .
-                                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL; // GALIB Was: VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL
+                                //TODO: [GHI 18108] Why VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL instead of VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL
+                                return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                             }
                             else if (RHI::CheckBitsAll(imageAspects, RHI::ImageAspectFlags::Stencil))
                             {

@@ -237,8 +237,7 @@ namespace AZ::RHI
         const AZ::Name& name /*= {}*/,
         const AttachmentLoadStoreAction& loadStoreAction /*= AttachmentLoadStoreAction()*/,            
         bool resolve /*= false*/,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,
-        AZ::RHI::ScopeAttachmentStage scopeAttachmentStage)
+        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess)
     {
         AZ::Name attachmentName = name;
         if (attachmentName.IsEmpty())
@@ -247,7 +246,7 @@ namespace AZ::RHI
             attachmentName = AZStd::string::format("Color%zu_Subpass%d", m_renderTargetAttachments.size(), m_subpassIndex);
         }
 
-        m_renderTargetAttachments.push_back({ attachmentName, format, loadStoreAction, {}, scopeAttachmentAccess, scopeAttachmentStage });
+        m_renderTargetAttachments.push_back({ attachmentName, format, loadStoreAction, {}, scopeAttachmentAccess, AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput });
         if (resolve)
         {
             return ResolveAttachment(attachmentName);
@@ -258,30 +257,27 @@ namespace AZ::RHI
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::RenderTargetAttachment(
         Format format,
         bool resolve,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,
-        AZ::RHI::ScopeAttachmentStage scopeAttachmentStage)
+        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,)
     {
-        return RenderTargetAttachment(format, {}, AttachmentLoadStoreAction(), resolve, scopeAttachmentAccess, scopeAttachmentStage);
+        return RenderTargetAttachment(format, {}, AttachmentLoadStoreAction(), resolve, scopeAttachmentAccess);
     }
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::RenderTargetAttachment(
         const AZ::Name& name,
         bool resolve,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,
-        AZ::RHI::ScopeAttachmentStage scopeAttachmentStage)
+        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess)
     {
         return RenderTargetAttachment(
-            Format::Unknown, name, AttachmentLoadStoreAction(), resolve, scopeAttachmentAccess, scopeAttachmentStage);
+            Format::Unknown, name, AttachmentLoadStoreAction(), resolve, scopeAttachmentAccess);
     }
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::RenderTargetAttachment(
         const AZ::Name& name,
         const AttachmentLoadStoreAction& loadStoreAction /*= AttachmentLoadStoreAction()*/,
         bool resolve /*= false*/,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,
-        AZ::RHI::ScopeAttachmentStage scopeAttachmentStage)
+        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess)
     {
-        return RenderTargetAttachment(Format::Unknown, name, loadStoreAction, resolve, scopeAttachmentAccess, scopeAttachmentStage);
+        return RenderTargetAttachment(Format::Unknown, name, loadStoreAction, resolve, scopeAttachmentAccess);
     }
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::ResolveAttachment(
@@ -345,11 +341,10 @@ namespace AZ::RHI
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::SubpassInputAttachment(
         const AZ::Name& name,
-        RHI::ImageAspectFlags aspectFlags,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,
-        AZ::RHI::ScopeAttachmentStage scopeAttachmentStage)
+        RHI::ImageAspectFlags aspectFlags)
     {
-        m_subpassInputAttachments.push_back(SubpassAttachmentEntry{ name, aspectFlags, scopeAttachmentAccess, scopeAttachmentStage });
+        m_subpassInputAttachments.push_back(
+            SubpassAttachmentEntry{ name, aspectFlags, AZ::RHI::ScopeAttachmentAccess::Read, AZ::RHI::ScopeAttachmentStage::FragmentShader });
         return this;
     }
 
