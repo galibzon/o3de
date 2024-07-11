@@ -259,6 +259,11 @@ namespace AZ
                     : accessFlags;
                 break;
             case RHI::ScopeAttachmentUsage::SubpassInput:
+                // QCOMM is particularly restrictive about this:
+                // Starting from the second subpass where the input_attachments field is used,
+                // the dstAccessMask must be set to VK_ACCESS_INPUT_ATTACHMENT_READ_BIT.
+                accessFlags = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+                break;
             case RHI::ScopeAttachmentUsage::Shader:
                 accessFlags |= RHI::CheckBitsAny(access, RHI::ScopeAttachmentAccess::Write)
                     ? VK_ACCESS_SHADER_WRITE_BIT
