@@ -18,14 +18,14 @@
                 "Func" : "Always",
                 "DepthFailOp" : "Keep",
                 "FailOp" : "Keep",
-                "PassOp" : "Replace"
+                "PassOp" : "Keep" // TODO. WAS "Replace" When sampling from subpass must be "Keep".
             },
             "BackFace" :
             {
                 "Func" : "Always",
                 "DepthFailOp" : "Keep",
                 "FailOp" : "Keep",
-                "PassOp" : "Replace"
+                "PassOp" : "Keep" // TODO. WAS "Replace" When sampling from subpass must be "Keep".
             }
         }
     },

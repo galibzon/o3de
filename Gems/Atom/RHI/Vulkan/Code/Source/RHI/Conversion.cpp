@@ -260,8 +260,7 @@ namespace AZ
                 break;
             case RHI::ScopeAttachmentUsage::SubpassInput:
                 // QCOMM is particularly restrictive about this:
-                // Starting from the second subpass where the input_attachments field is used,
-                // the dstAccessMask must be set to VK_ACCESS_INPUT_ATTACHMENT_READ_BIT.
+                // Starting from the second subpass where the input_attachments field is used, the dstAccessMask must be set to VK_ACCESS_INPUT_ATTACHMENT_READ_BIT.
                 accessFlags = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
                 break;
             case RHI::ScopeAttachmentUsage::Shader:
@@ -426,7 +425,7 @@ namespace AZ
                 {
                     return RHI::CheckBitsAny(access, RHI::ScopeAttachmentAccess::Write) ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL
                                                                                         : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-                }                
+                }
             case RHI::ScopeAttachmentUsage::Shader:
             case RHI::ScopeAttachmentUsage::SubpassInput:
                 {
@@ -459,7 +458,7 @@ namespace AZ
                                 return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
                             }
                         }
-                        
+
                         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                     }
                 }
