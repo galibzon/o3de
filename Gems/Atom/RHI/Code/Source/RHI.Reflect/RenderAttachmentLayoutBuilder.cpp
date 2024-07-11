@@ -236,8 +236,7 @@ namespace AZ::RHI
         Format format,
         const AZ::Name& name /*= {}*/,
         const AttachmentLoadStoreAction& loadStoreAction /*= AttachmentLoadStoreAction()*/,            
-        bool resolve /*= false*/,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess)
+        bool resolve /*= false*/)
     {
         AZ::Name attachmentName = name;
         if (attachmentName.IsEmpty())
@@ -246,7 +245,7 @@ namespace AZ::RHI
             attachmentName = AZStd::string::format("Color%zu_Subpass%d", m_renderTargetAttachments.size(), m_subpassIndex);
         }
 
-        m_renderTargetAttachments.push_back({ attachmentName, format, loadStoreAction, {}, scopeAttachmentAccess, AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput });
+        m_renderTargetAttachments.push_back({ attachmentName, format, loadStoreAction, {}, AZ::RHI::ScopeAttachmentAccess::Write, AZ::RHI::ScopeAttachmentStage::ColorAttachmentOutput });
         if (resolve)
         {
             return ResolveAttachment(attachmentName);
@@ -256,28 +255,25 @@ namespace AZ::RHI
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::RenderTargetAttachment(
         Format format,
-        bool resolve,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess,)
+        bool resolve)
     {
-        return RenderTargetAttachment(format, {}, AttachmentLoadStoreAction(), resolve, scopeAttachmentAccess);
+        return RenderTargetAttachment(format, {}, AttachmentLoadStoreAction(), resolve);
     }
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::RenderTargetAttachment(
         const AZ::Name& name,
-        bool resolve,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess)
+        bool resolve)
     {
         return RenderTargetAttachment(
-            Format::Unknown, name, AttachmentLoadStoreAction(), resolve, scopeAttachmentAccess);
+            Format::Unknown, name, AttachmentLoadStoreAction(), resolve);
     }
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::RenderTargetAttachment(
         const AZ::Name& name,
         const AttachmentLoadStoreAction& loadStoreAction /*= AttachmentLoadStoreAction()*/,
-        bool resolve /*= false*/,
-        AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess)
+        bool resolve /*= false*/)
     {
-        return RenderTargetAttachment(Format::Unknown, name, loadStoreAction, resolve, scopeAttachmentAccess);
+        return RenderTargetAttachment(Format::Unknown, name, loadStoreAction, resolve);
     }
 
     RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder* RenderAttachmentLayoutBuilder::SubpassAttachmentLayoutBuilder::ResolveAttachment(

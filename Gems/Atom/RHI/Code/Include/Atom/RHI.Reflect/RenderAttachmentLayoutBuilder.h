@@ -81,29 +81,25 @@ namespace AZ::RHI
             //! Adds the use of a new render target with resolve information.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 Format format,
-                bool resolve,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
+                bool resolve);
 
             //! Adds the use of a previously added render target  with resolve information.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 const AZ::Name& name,
-                bool resolve,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
+                bool resolve);
 
             //! Adds the use of a previously added render target.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 const AZ::Name& name,
                 const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
-                bool resolve = false,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
+                bool resolve = false);
 
             //! Adds the use of a new render target.
             SubpassAttachmentLayoutBuilder* RenderTargetAttachment(
                 Format format,                    
                 const AZ::Name& name = {},
                 const AttachmentLoadStoreAction& loadStoreAction = AttachmentLoadStoreAction(),
-                bool resolve = false,
-                AZ::RHI::ScopeAttachmentAccess scopeAttachmentAccess = AZ::RHI::ScopeAttachmentAccess::Write);
+                bool resolve = false);
 
             //! Adds the use of a new resolve attachment. The "sourceName" attachment must
             // be already be added as by this pass.

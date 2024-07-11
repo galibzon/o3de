@@ -116,9 +116,7 @@ namespace AZ
                     const auto aspectFlags = binding.m_unifiedScopeDesc.GetAsImage().m_imageViewDescriptor.m_aspectFlags;
                     subpassLayoutBuilder.SubpassInputAttachment(
                         binding.GetAttachment()->GetAttachmentId(),
-                        aspectFlags,
-                        binding.GetAttachmentAccess(),
-                        binding.m_scopeAttachmentStage);
+                        aspectFlags);
                     continue;
                 }
 
@@ -135,9 +133,7 @@ namespace AZ
                         format,
                         binding.GetAttachment()->GetAttachmentId(),
                         binding.m_unifiedScopeDesc.m_loadStoreAction,
-                        false /*resolve*/,
-                        binding.GetAttachmentAccess(),
-                        binding.m_scopeAttachmentStage);
+                        false /*resolve*/);
                 }
             }
 
