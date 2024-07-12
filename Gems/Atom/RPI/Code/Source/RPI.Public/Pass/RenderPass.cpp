@@ -134,6 +134,17 @@ namespace AZ
                         binding.GetAttachment()->GetAttachmentId(),
                         binding.m_unifiedScopeDesc.m_loadStoreAction,
                         false /*resolve*/);
+                    continue;
+                }
+
+                if (binding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::Resolve)
+                {
+                    // A Resolve attachment must be declared immediately after the RenderTarget it is supposed to resolve.
+                    AZ_Assert(slotIndex > 0, "A Resolve attachment can not be in the first slot binding.");
+                    const auto& renderTargetBinding = m_attachmentBindings[slotIndex - 1];
+                    AZ_Assert(renderTargetBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::RenderTarget,
+                        "A Resolve attachment must be declared immediately after a RenderTarget attachment.");
+                    subpassLayoutBuilder.ResolveAttachment(renderTargetBinding.GetAttachment()->GetAttachmentId(), binding.GetAttachment()->GetAttachmentId());
                 }
             }
 
@@ -293,8 +304,9 @@ namespace AZ
 
         void RenderPass::DeclareAttachmentsToFrameGraph(RHI::FrameGraphInterface frameGraph) const
         {
-            for (const PassAttachmentBinding& attachmentBinding : m_attachmentBindings)
+            for (size_t slotIndex = 0; slotIndex < m_attachmentBindings.size(); ++slotIndex)
             {
+                const auto& attachmentBinding = m_attachmentBindings[slotIndex];
                 if (attachmentBinding.GetAttachment() != nullptr &&
                     frameGraph.GetAttachmentDatabase().IsAttachmentValid(attachmentBinding.GetAttachment()->GetAttachmentId()))
                 {
@@ -307,6 +319,17 @@ namespace AZ
                         {
                             AZ_Assert(m_flags.m_mergeChildrenAsSubpasses, "SubpassInputs are only allowed in RenderPasses that are mergeable as subpass.");
                             frameGraph.UseSubpassInputAttachment(imageScopeAttachmentDescriptor, attachmentBinding.m_scopeAttachmentStage);
+                        }
+                        else if (attachmentBinding.m_scopeAttachmentUsage == RHI::ScopeAttachmentUsage::Resolve)
+                        {
+                            // A Resolve attachment must be declared immediately after the RenderTarget it is supposed to resolve.
+                            // This particular requirement was already validated during BuildSubpassLayout().
+                            const auto& renderTargetBinding = m_attachmentBindings[slotIndex - 1];
+                            RHI::ResolveScopeAttachmentDescriptor resolveDescriptor;
+                            resolveDescriptor.m_attachmentId = attachmentBinding.GetAttachment()->GetAttachmentId();
+                            resolveDescriptor.m_loadStoreAction = attachmentBinding.m_unifiedScopeDesc.m_loadStoreAction;
+                            resolveDescriptor.m_resolveAttachmentId = renderTargetBinding.GetAttachment()->GetAttachmentId();
+                            frameGraph.UseResolveAttachment(resolveDescriptor);
                         }
                         else
                         {
@@ -391,7 +414,8 @@ namespace AZ
 
                     if (binding.m_shaderInputIndex != PassAttachmentBinding::ShaderInputNoBind &&
                         binding.m_scopeAttachmentUsage != RHI::ScopeAttachmentUsage::RenderTarget &&
-                        binding.m_scopeAttachmentUsage != RHI::ScopeAttachmentUsage::DepthStencil)
+                        binding.m_scopeAttachmentUsage != RHI::ScopeAttachmentUsage::DepthStencil &&
+                        binding.m_scopeAttachmentUsage != RHI::ScopeAttachmentUsage::Resolve)
                     {
                         m_shaderResourceGroup->SetImageView(RHI::ShaderInputImageIndex(inputIndex), imageView, arrayIndex);
                         ++imageIndex;
