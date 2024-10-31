@@ -643,6 +643,14 @@
             {
                 "Name": "TaaParentTemplate",
                 "Path": "Passes/TaaParent.pass"
+            },
+            {
+                "Name": "NormalVectorDisplayPassTemplate",
+                "Path": "Passes/MaterialComputeTest/NormalVectorDisplay.pass"
+            },
+            {
+                "Name": "NormalVectorDisplayPipelineTemplate",
+                "Path": "Passes/MaterialComputeTest/NormalVectorDisplayPipeline.pass"
             }
         ]
     }

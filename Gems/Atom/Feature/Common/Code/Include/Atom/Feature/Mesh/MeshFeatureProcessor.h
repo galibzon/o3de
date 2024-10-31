@@ -105,7 +105,7 @@ namespace AZ
                                                                          } };
                 Data::Asset<RPI::ModelAsset> m_modelAsset;
                 ModelDataInstance* m_parent = nullptr;
-            };
+            };// class MeshLoader
 
             // Free all the resources owned by this mesh handle
             void DeInit(MeshFeatureProcessor* meshFeatureProcessor);
@@ -193,7 +193,7 @@ namespace AZ
                 bool m_hasRayTracingReflectionProbe : 1;
                 bool m_keepBufferAssetsInMemory : 1;            // If true, we need to keep BufferAssets referenced by ModelAsset stay in memory. This is needed when editor use RayIntersection
             } m_flags;
-        };
+        }; //class ModelDataInstance
 
         //! This feature processor handles static and dynamic non-skinned meshes.
         class MeshFeatureProcessor final : public MeshFeatureProcessorInterface

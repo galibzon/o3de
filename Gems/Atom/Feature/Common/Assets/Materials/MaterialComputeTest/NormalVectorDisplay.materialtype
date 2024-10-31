@@ -1,0 +1,9 @@
+{
+    "description": "Testing compute pass with Dispatch items",
+    "version": 1,
+    "shaders": [
+        {
+            "file": "Shaders/MaterialComputeTest/NormalVectorDisplay.shader"
+        }
+    ]
+}
