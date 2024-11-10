@@ -157,6 +157,8 @@ namespace AZ
             virtual Data::Instance<RPI::Model> GetModel(const MeshHandle& meshHandle) const = 0;
             //! Gets the underlying RPI::ModelAsset for a meshHandle.
             virtual Data::Asset<RPI::ModelAsset> GetModelAsset(const MeshHandle& meshHandle) const = 0;
+
+            //! GALIB: TODO update these comments!
             //! This function is primarily intended for debug output and testing, by providing insight into what
             //! materials, shaders, etc. are actively being used to render the model.
             virtual const RPI::MeshDrawPacketLods& GetDrawPackets(const MeshHandle& meshHandle) const = 0;

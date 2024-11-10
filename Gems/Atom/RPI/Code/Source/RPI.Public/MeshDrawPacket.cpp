@@ -281,8 +281,16 @@ namespace AZ
             m_shaderVariantNames.clear();
 #endif
 
-            auto appendShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
+            auto appendRasterShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
             {
+                //static constexpr char targetShaderName[] = "materials/types/skin_rlr_pipeline_rlr_lightwrapgencomputeskin.azshader";
+                //const char* shaderName = shaderItem.GetShaderAsset().GetHint().c_str();
+                //AZ_Printf("GALIB", "MeshDrawPacket::DoUpdate shaderItem=%s\n", shaderName);
+                //if (strcmp(shaderName, targetShaderName) == 0)
+                //{
+                //    AZ_Printf("GALIB", "Found %s.\n", targetShaderName);
+                //}
+
                 // Skip the shader item without creating the shader instance
                 // if the mesh is not going to be rendered based on the draw tag
                 RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
@@ -474,7 +482,184 @@ namespace AZ
                 shaderList.emplace_back(AZStd::move(shaderData));
 
                 return true;
-            };
+            }; // appendRasterShader
+
+            auto appendDispatchShader = [&](const ShaderCollection::Item& shaderItem, const Name& materialPipelineName)
+            {
+                static constexpr char targetShaderName[] = "materials/types/skin_rlr_pipeline_rlr_lightwrapgencomputeskin.azshader";
+                const char* shaderName = shaderItem.GetShaderAsset().GetHint().c_str();
+                AZ_Printf("GALIB", "MeshDrawPacket::DoUpdate shaderItem=%s\n", shaderName);
+                if (strcmp(shaderName, targetShaderName) == 0)
+                {
+                    AZ_Printf("GALIB", "Found %s.\n", targetShaderName);
+                }
+                // Skip the shader item without creating the shader instance
+                // if the mesh is not going to be rendered based on the draw tag
+                RHI::RHISystemInterface* rhiSystem = RHI::RHISystemInterface::Get();
+                RHI::DrawListTagRegistry* drawListTagRegistry = rhiSystem->GetDrawListTagRegistry();
+
+                // Use the explicit draw list override if exists.
+                RHI::DrawListTag drawListTag = shaderItem.GetDrawListTagOverride();
+
+                if (drawListTag.IsNull())
+                {
+                    Data::Asset<RPI::ShaderAsset> shaderAsset = shaderItem.GetShaderAsset();
+                    if (!shaderAsset.IsReady())
+                    {
+                        // The shader asset needs to be loaded before we can check the draw tag.
+                        // If it's not loaded yet, the instance database will do a blocking load
+                        // when we create the instance below, so might as well load it now.
+                        shaderAsset.QueueLoad();
+
+                        if (shaderAsset.IsLoading())
+                        {
+                            shaderAsset.BlockUntilLoadComplete();
+                        }
+                    }
+
+                    drawListTag = drawListTagRegistry->FindTag(shaderAsset->GetDrawListName());
+                }
+
+                // draw list tag is filtered out. skip this item
+                if (drawListTag.IsNull() || !m_drawListFilter[drawListTag.GetIndex()])
+                {
+                    return false;
+                }
+
+                Data::Instance<Shader> shader = RPI::Shader::FindOrCreate(shaderItem.GetShaderAsset());
+                if (!shader)
+                {
+                    AZ_Error(
+                        "MeshDrawPacket",
+                        false,
+                        "appendDispatchShader: Shader '%s'. Failed to find or create instance",
+                        shaderItem.GetShaderAsset()->GetName().GetCStr());
+                    return false;
+                }
+
+                RPI::ShaderOptionGroup shaderOptions = *shaderItem.GetShaderOptions();
+
+                // Set all unspecified shader options to default values, so that we get the most specialized variant possible.
+                // (because FindVariantStableId treats unspecified options as a request specifically for a variant that doesn't specify
+                // those options) [GFX TODO][ATOM-3883] We should consider updating the FindVariantStableId algorithm to handle default
+                // values for us, and remove this step here. This might not be necessary anymore though, since
+                // ShaderAsset::GetDefaultShaderOptions() does this when the material type builder is creating the ShaderCollection.
+                shaderOptions.SetUnspecifiedToDefaultValues();
+
+                // apply shader options from this draw packet to the ShaderItem
+                for (auto& meshShaderOption : m_shaderOptions)
+                {
+                    Name& name = meshShaderOption.first;
+                    RPI::ShaderOptionValue& value = meshShaderOption.second;
+
+                    ShaderOptionIndex index = shaderOptions.FindShaderOptionIndex(name);
+
+                    // Shader options will be applied to any shader item that supports it, even if
+                    // not all the shader items in the draw packet support it
+                    if (index.IsValid())
+                    {
+                        shaderOptions.SetValue(name, value);
+                    }
+                }
+
+                const ShaderVariantId requestedVariantId = shaderOptions.GetShaderVariantId();
+                const ShaderVariant& variant =
+                    r_forceRootShaderVariantUsage ? shader->GetRootVariant() : shader->GetVariant(requestedVariantId);
+
+#ifdef DEBUG_MESH_SHADERVARIANTS
+                m_shaderVariantNames.push_back(variant.GetShaderVariantAsset().GetHint());
+#endif
+
+                RHI::PipelineStateDescriptorForDispatch pipelineStateDescriptor;
+                variant.ConfigurePipelineState(pipelineStateDescriptor, shaderOptions);
+
+                UvStreamTangentBitmask uvStreamTangentBitmask;
+
+                Data::Instance<ShaderResourceGroup> drawSrg = shader->CreateDrawSrgForShaderVariant(shaderOptions, false);
+                if (drawSrg)
+                {
+                    // Pass UvStreamTangentBitmask to the shader if the draw SRG has it.
+
+                    AZ::Name shaderUvStreamTangentBitmask = AZ::Name(UvStreamTangentBitmask::SrgName);
+                    auto index = drawSrg->FindShaderInputConstantIndex(shaderUvStreamTangentBitmask);
+
+                    if (index.IsValid())
+                    {
+                        drawSrg->SetConstant(index, uvStreamTangentBitmask.GetFullTangentBitmask());
+                    }
+
+                    drawSrg->Compile();
+                }
+
+                const RHI::PipelineState* pipelineState = shader->AcquirePipelineState(pipelineStateDescriptor);
+                if (!pipelineState)
+                {
+                    AZ_Error(
+                        "MeshDrawPacket",
+                        false,
+                        "appendDispatchShader: Shader '%s'. Failed to acquire default pipeline state",
+                        shaderItem.GetShaderAsset()->GetName().GetCStr());
+                    return false;
+                }
+
+                const RHI::ConstantsLayout* rootConstantsLayout =
+                    pipelineStateDescriptor.m_pipelineLayoutDescriptor->GetRootConstantsLayout();
+                if (isFirstShaderItem)
+                {
+                    if (HasRootConstants(rootConstantsLayout))
+                    {
+                        m_rootConstantsLayout = rootConstantsLayout;
+                        rootConstants.resize(m_rootConstantsLayout->GetDataSize());
+                        drawPacketBuilder.SetRootConstants(rootConstants);
+                    }
+
+                    isFirstShaderItem = false;
+                }
+                else
+                {
+                    AZ_Error(
+                        "MeshDrawPacket",
+                        (!m_rootConstantsLayout && !HasRootConstants(rootConstantsLayout)) ||
+                            (m_rootConstantsLayout && rootConstantsLayout &&
+                             m_rootConstantsLayout->GetHash() == rootConstantsLayout->GetHash()),
+                        "appendDispatchShader: Shader %s has mis-matched root constant layout in material %s. "
+                        "All draw items in a draw packet need to share the same root constants layout. This means that each pass "
+                        "(e.g. Depth, Shadows, Forward, MotionVectors) for a given materialtype should use the same layout.",
+                        shaderItem.GetShaderAsset()->GetName().GetCStr(),
+                        m_material->GetAsset().ToString<AZStd::string>().c_str());
+                }
+
+                RHI::DrawPacketBuilder::DrawRequest drawRequest;
+                drawRequest.m_listTag = drawListTag;
+                drawRequest.m_pipelineState = pipelineState;
+                drawRequest.m_sortKey = m_sortKey;
+                if (drawSrg)
+                {
+                    drawRequest.m_uniqueShaderResourceGroup = drawSrg->GetRHIShaderResourceGroup();
+                    // Hold on to a reference to the drawSrg so the refcount doesn't drop to zero
+                    m_perDrawSrgs.push_back(drawSrg);
+                }
+
+                if (materialPipelineName != MaterialPipelineNone)
+                {
+                    RHI::DrawFilterTag pipelineTag = parentScene.GetDrawFilterTagRegistry()->AcquireTag(materialPipelineName);
+                    AZ_Assert(pipelineTag.IsValid(), "Could not acquire pipeline filter tag '%s'.", materialPipelineName.GetCStr());
+                    drawRequest.m_drawFilterMask = 1 << pipelineTag.GetIndex();
+                }
+
+                drawPacketBuilder.AddDrawItem(drawRequest);
+
+                ShaderData shaderData;
+                shaderData.m_shader = AZStd::move(shader);
+                shaderData.m_materialPipelineName = materialPipelineName;
+                shaderData.m_shaderTag = shaderItem.GetShaderTag();
+                shaderData.m_requestedShaderVariantId = requestedVariantId;
+                shaderData.m_activeShaderVariantId = variant.GetShaderVariantId();
+                shaderData.m_activeShaderVariantStableId = variant.GetStableId();
+                shaderList.emplace_back(AZStd::move(shaderData));
+
+                return true;
+            }; // appendDispatchShader
 
             m_material->ApplyGlobalShaderOptions();
 
@@ -490,7 +675,15 @@ namespace AZ
                             return false;
                         }
 
-                        appendShader(shaderItem, materialPipelineName);
+                        const auto pipelineStateType = shaderItem.GetShaderAsset()->GetPipelineStateType();
+                        if (pipelineStateType == RHI::PipelineStateType::Draw)
+                        {
+                            appendRasterShader(shaderItem, materialPipelineName);
+                        }
+                        else
+                        {
+                            appendDispatchShader(shaderItem, materialPipelineName);
+                        }
                     }
 
                     return true;
