@@ -1586,8 +1586,8 @@ namespace AZ
 
         void Pass::GetViewDrawListInfo(RHI::DrawListMask& outDrawListMask, PassesByDrawList& outPassesByDrawList, const PipelineViewTag& viewTag) const
         {
-            const char* name = m_name.GetCStr();
-            AZ_Printf("GALIB", "%s name=%s\n", __FUNCTION__, name);
+            //const char* name = m_name.GetCStr();
+            //AZ_Printf("GALIB", "%s name=%s\n", __FUNCTION__, name);
             // NOTE: we always collect the draw list mask regardless if the pass enabled or not. The reason is we want to keep the view information
             // even when pass is disabled so it can continue work correctly when re-enable it.
 

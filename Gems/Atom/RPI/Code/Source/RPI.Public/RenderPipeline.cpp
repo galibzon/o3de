@@ -744,9 +744,9 @@ namespace AZ
 
         void RenderPipeline::CollectPersistentViews(AZStd::map<ViewPtr, RHI::DrawListMask>& outViewMasks) const
         {
-            const char* nameId = m_nameId.GetCStr();
-            const char* materialPipelineName = m_materialPipelineTagName.GetCStr();
-            AZ_Printf("GALIB", "m_nameId=%s, materialPipelineName=%s\n", nameId, materialPipelineName);
+            //const char* nameId = m_nameId.GetCStr();
+            //const char* materialPipelineName = m_materialPipelineTagName.GetCStr();
+            //AZ_Printf("GALIB", "m_nameId=%s, materialPipelineName=%s\n", nameId, materialPipelineName);
             for (auto& viewItr : m_pipelineViewsByTag)
             {
                 const PipelineViews& pipelineViews = viewItr.second;

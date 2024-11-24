@@ -75,6 +75,8 @@ namespace AZ
             //! a Mesh.
             void ConnectMeshDrawPacketUpdatedHandler(MeshDrawPacketUpdatedEvent::Handler& handler);
 
+            CustomMaterialInfo GetCustomMaterialWithFallback(const CustomMaterialId& id) const; // GALIB WAs private
+
         private:
             class MeshLoader
                 : private SystemTickBus::Handler
@@ -135,7 +137,7 @@ namespace AZ
             void UpdateObjectSrg(MeshFeatureProcessor* meshFeatureProcessor);
             bool MaterialRequiresForwardPassIblSpecular(Data::Instance<RPI::Material> material) const;
             void SetVisible(bool isVisible);
-            CustomMaterialInfo GetCustomMaterialWithFallback(const CustomMaterialId& id) const;
+            //CustomMaterialInfo GetCustomMaterialWithFallback(const CustomMaterialId& id) const; // GALIB WAs private
 
             // When instancing is disabled, draw packets are owned by the ModelDataInstance
             RPI::MeshDrawPacketLods m_meshDrawPacketListsByLod;
