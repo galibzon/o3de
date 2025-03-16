@@ -490,15 +490,38 @@ namespace AZ
 
                 AZStd::shared_ptr<RHI::RayTracingShaderTableDescriptor> descriptor = AZStd::make_shared<RHI::RayTracingShaderTableDescriptor>();
 
-                if (rayTracingFeatureProcessor->HasGeometry())
-                {
-                    // build the ray tracing shader table descriptor
-                    RHI::RayTracingShaderTableDescriptor* descriptorBuild = descriptor->Build(AZ::Name("RayTracingShaderTable"), m_rayTracingPipelineState)
+                ////////////////////////////////////////////////////////////////////////
+                // GALIB O3DE Original
+                // if (rayTracingFeatureProcessor->HasGeometry())
+                // {
+                //     // build the ray tracing shader table descriptor
+                //     RHI::RayTracingShaderTableDescriptor* descriptorBuild = descriptor->Build(AZ::Name("RayTracingShaderTable"), m_rayTracingPipelineState)
+                //         ->RayGenerationRecord(AZ::Name(m_passData->m_rayGenerationShaderName.c_str()))
+                //         ->MissRecord(AZ::Name(m_passData->m_missShaderName.c_str()));
+                // 
+                //     // add a hit group for standard meshes mesh to the shader table
+                //     descriptorBuild->HitGroupRecord(AZ::Name("HitGroup"));
+                // 
+                //     // add a hit group for each procedural geometry type to the shader table
+                //     const auto& proceduralGeometryTypes = rayTracingFeatureProcessor->GetProceduralGeometryTypes();
+                //     for (auto it = proceduralGeometryTypes.cbegin(); it != proceduralGeometryTypes.cend(); ++it)
+                //     {
+                //         descriptorBuild->HitGroupRecord(it->m_name);
+                //         // TODO(intersection): Set per-hitgroup SRG once RayTracingPipelineState supports local root signatures
+                //     }
+                // }
+                // GALIB NEW
+                // build the ray tracing shader table descriptor
+                RHI::RayTracingShaderTableDescriptor* descriptorBuild =
+                    descriptor->Build(AZ::Name("RayTracingShaderTable"), m_rayTracingPipelineState)
                         ->RayGenerationRecord(AZ::Name(m_passData->m_rayGenerationShaderName.c_str()))
                         ->MissRecord(AZ::Name(m_passData->m_missShaderName.c_str()));
 
-                    // add a hit group for standard meshes mesh to the shader table
-                    descriptorBuild->HitGroupRecord(AZ::Name("HitGroup"));
+                // add a hit group for standard meshes mesh to the shader table
+                descriptorBuild->HitGroupRecord(AZ::Name("HitGroup"));
+
+                if (rayTracingFeatureProcessor->HasGeometry())
+                {
 
                     // add a hit group for each procedural geometry type to the shader table
                     const auto& proceduralGeometryTypes = rayTracingFeatureProcessor->GetProceduralGeometryTypes();
@@ -508,6 +531,7 @@ namespace AZ
                         // TODO(intersection): Set per-hitgroup SRG once RayTracingPipelineState supports local root signatures
                     }
                 }
+                ////////////////////////////////////////////////////////////////////////
 
                 m_rayTracingShaderTable->Build(descriptor);
 
@@ -555,15 +579,24 @@ namespace AZ
 
         void RayTracingPass::BuildCommandListInternal(const RHI::FrameGraphExecuteContext& context)
         {
-            RPI::Scene* scene = m_pipeline->GetScene();
-            RayTracingFeatureProcessor* rayTracingFeatureProcessor = scene->GetFeatureProcessor<RayTracingFeatureProcessor>();
-            AZ_Assert(rayTracingFeatureProcessor, "RayTracingPass requires the RayTracingFeatureProcessor");
-
-            if (!rayTracingFeatureProcessor || !rayTracingFeatureProcessor->GetTlas()->GetTlasBuffer() ||
-                !rayTracingFeatureProcessor->HasGeometry() || !m_rayTracingShaderTable)
+            //////////////////////////////////////////////////////////////////////////
+            // GALIB O3DE ORIGINAL
+            //RPI::Scene* scene = m_pipeline->GetScene();
+            //RayTracingFeatureProcessor* rayTracingFeatureProcessor = scene->GetFeatureProcessor<RayTracingFeatureProcessor>();
+            //AZ_Assert(rayTracingFeatureProcessor, "RayTracingPass requires the RayTracingFeatureProcessor");
+            //
+            //if (!rayTracingFeatureProcessor || !rayTracingFeatureProcessor->GetTlas()->GetTlasBuffer() ||
+            //    !rayTracingFeatureProcessor->HasGeometry() || !m_rayTracingShaderTable)
+            //{
+            //    return;
+            //}
+            //
+            // GALIB HACK
+            if (!m_rayTracingShaderTable)
             {
                 return;
             }
+            ///////////////////////////////////////////////////////////////////////////
 
             if (m_dispatchRaysShaderTableRevision != m_rayTracingShaderTableRevision)
             {
